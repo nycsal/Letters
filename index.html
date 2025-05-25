@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Catch the Letters</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Catch the Letters!</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
       overflow: hidden;
-      background: #f0f8ff;
+      touch-action: none;
       font-family: 'Comic Sans MS', cursive, sans-serif;
+      background-color: #f0f8ff;
     }
 
     #gameContainer {
@@ -31,7 +32,7 @@
       background-color: pink;
       border-radius: 0 0 60px 60px;
       border: 5px solid #cc6699;
-      z-index: 5;
+      z-index: 10;
     }
 
     .letter {
@@ -41,8 +42,7 @@
       color: #3498db;
       user-select: none;
       pointer-events: none;
-      text-shadow: 1px 1px 2px white;
-      font-family: 'Comic Sans MS', cursive;
+      text-shadow: 2px 2px 2px white;
     }
 
     #targetWord {
@@ -60,7 +60,7 @@
       bottom: 100px;
       width: 100%;
       text-align: center;
-      font-size: 1.8rem;
+      font-size: 2rem;
       font-weight: bold;
       color: #2ecc71;
     }
@@ -71,7 +71,7 @@
 
     @keyframes pop {
       0% { transform: scale(1); }
-      50% { transform: scale(1.4); }
+      50% { transform: scale(1.5); }
       100% { transform: scale(1); }
     }
 
@@ -86,27 +86,35 @@
 
     #instructions {
       position: absolute;
-      top: 25%;
+      top: 20%;
       width: 90%;
       left: 5%;
       text-align: center;
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       color: #333;
-      background-color: #ffffffcc;
-      padding: 20px;
+      background-color: #ffffffee;
+      padding: 25px;
       border-radius: 10px;
-      z-index: 10;
+      z-index: 20;
     }
 
     #startButton {
       margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 1rem;
+      padding: 12px 24px;
+      font-size: 1.2rem;
       background-color: #007acc;
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
+    }
+
+    input[type="text"] {
+      font-size: 1.2rem;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #999;
+      width: 80%;
     }
   </style>
 </head>
@@ -117,12 +125,11 @@
   <div id="caughtLetters"></div>
   <div id="message"></div>
   <div id="instructions">
-    What’s your name?<br>
-    <input type="text" id="nameInput" placeholder="Type name here" /><br><br>
+    👋 Hi! What’s your name?<br><br>
+    <input type="text" id="nameInput" placeholder="Type your name here" /><br><br>
     Swipe left or right to move the basket.<br>
-    Catch the letters of your name in order!
-    <br><br>
-    <button id="startButton">Start</button>
+    Catch the letters of your name in order!<br><br>
+    <button id="startButton">Start!</button>
   </div>
   <div id="basket"></div>
 </div>
@@ -240,7 +247,7 @@ function handleCaughtLetter(char) {
   }
 }
 
-// Swipe movement
+// Swipe to move the basket
 let startX = null;
 container.addEventListener("touchstart", e => {
   startX = e.touches[0].clientX;
