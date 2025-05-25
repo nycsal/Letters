@@ -1,44 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Mini Maze Chase</title>
+  <meta charset="UTF-8">
+  <title>Maze Chase Game</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       background: black;
       overflow: hidden;
       font-family: Arial, sans-serif;
+      height: 100%;
+      touch-action: manipulation;
     }
-    canvas {
+    #game {
       display: block;
-      margin: 0 auto;
       background: #111;
       border: 4px solid #fff;
+      margin: 0 auto;
+      max-width: 100%;
+      height: auto;
     }
     #joystick {
       position: fixed;
       bottom: 10px;
-      width: 100%;
+      left: 0;
+      right: 0;
       display: flex;
       justify-content: center;
-      gap: 30px;
+      gap: 10px;
+      z-index: 10;
     }
     .btn {
       width: 60px;
       height: 60px;
-      background: #444;
-      color: white;
+      background: #333;
+      color: #fff;
       font-size: 24px;
-      border-radius: 10px;
-      text-align: center;
-      line-height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       user-select: none;
+      border: 2px solid white;
+    }
+    @media (max-width: 500px) {
+      .btn {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+      }
     }
   </style>
 </head>
 <body>
+
 <canvas id="game" width="400" height="400"></canvas>
+
 <div id="joystick">
   <div class="btn" onclick="move('up')">↑</div>
   <div class="btn" onclick="move('left')">←</div>
@@ -82,8 +100,7 @@ const levels = [
     "#.....#.......#.#.#.",
     "#.#############.#.#.",
     "#P...............G#"
-  ],
-  // You can define more levels here (same dimensions, different walls/layout)
+  ]
 ];
 
 function loadLevel(n) {
@@ -157,7 +174,6 @@ function move(dir) {
 }
 
 function update() {
-  // Player move
   const nx = player.x + direction.x;
   const ny = player.y + direction.y;
   if (map[ny] && map[ny][nx] && map[ny][nx] !== "#") {
@@ -167,14 +183,9 @@ function update() {
       map[ny][nx] = " ";
       pelletsLeft--;
     } else if (map[ny][nx] === "E") {
-      level++;
-      if (levels[level - 1]) {
-        loadLevel(level);
-      } else {
-        alert("🎉 You beat all levels!");
-        level = 1;
-        loadLevel(level);
-      }
+      alert("🎉 You completed the level!");
+      level = 1;
+      loadLevel(level);
       return;
     }
   }
@@ -192,10 +203,8 @@ function update() {
     ghost.y -= dy > 0 ? -1 : 1;
   }
 
-  // Game over
   if (ghost.x === player.x && ghost.y === player.y) {
-    alert("💀 You got caught! Game Over.");
-    level = 1;
+    alert("💀 You got caught!");
     loadLevel(level);
   }
 
