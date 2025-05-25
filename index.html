@@ -2,22 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Catch the Letters!</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catch the Letters</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <style>
-    body, html {
+    html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
+      touch-action: none;
       font-family: sans-serif;
       background: #f0f8ff;
     }
 
     #game {
+      position: relative;
       width: 100vw;
       height: 100vh;
-      position: relative;
-      background: linear-gradient(to bottom, #cceeff, #e6f7ff);
+      overflow: hidden;
     }
 
     .letter {
@@ -27,6 +28,7 @@
       color: hsl(calc(360 * var(--hue)), 80%, 60%);
       user-select: none;
       pointer-events: none;
+      transition: transform 0.3s ease;
     }
 
     #basket {
@@ -46,7 +48,7 @@
       top: 40%;
       width: 100%;
       text-align: center;
-      font-size: 28px;
+      font-size: 24px;
       color: green;
       display: none;
     }
@@ -58,27 +60,20 @@
       background: rgba(255, 255, 255, 0.7);
       padding: 6px 12px;
       border-radius: 8px;
+      z-index: 10;
     }
 
     #timer { right: 10px; }
     #score { left: 10px; }
 
-    #word-select {
-      position: absolute;
-      top: 40%;
-      width: 100%;
-      text-align: center;
-      font-size: 24px;
+    .flash {
+      animation: flash 0.4s ease-in-out;
     }
 
-    button {
-      padding: 10px 20px;
-      margin: 10px;
-      font-size: 18px;
-      border: none;
-      border-radius: 8px;
-      background: #4caf50;
-      color: white;
+    @keyframes flash {
+      0% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.4); filter: brightness(2); }
+      100% { transform: scale(1); filter: brightness(1); }
     }
   </style>
 </head>
@@ -88,7 +83,6 @@
     <div id="message">🎉 Good job! 🎉</div>
     <div id="timer">60</div>
     <div id="score">Score: 0</div>
-    <div id="word-select" style="display:none;"></div>
   </div>
 
   <script>
@@ -97,66 +91,79 @@
     const message = document.getElementById("message");
     const timerEl = document.getElementById("timer");
     const scoreEl = document.getElementById("score");
-    const wordSelect = document.getElementById("word-select");
 
+    const kidWords = ["DOG", "CAT", "SUN", "CAR", "HAT", "FAN", "BUS", "MAP", "PEN", "FOX", "BOX", "BAT"];
+    let usedWords = [];
+    let currentWord = "";
+    let currentIndex = 0;
+    let score = 0;
+    let level = 1;
+    let timer = 60;
+    let intervalId;
     let gameWidth = window.innerWidth;
     let gameHeight = window.innerHeight;
 
     let letters = [];
-    let currentWord = "";
-    let currentIndex = 0;
-    let score = 0;
-    let timer = 60;
-    let level = 1;
 
-    function askName() {
-      const name = prompt("What's your name?");
-      if (name) {
-        currentWord = name.toUpperCase();
-        startLevel();
-      }
+    function getNextWord() {
+      const available = kidWords.filter(word => !usedWords.includes(word));
+      if (available.length === 0) return null;
+      const word = available[Math.floor(Math.random() * available.length)];
+      usedWords.push(word);
+      return word;
     }
 
-    function showWords() {
-      const words = ["DOG", "CAT", "SUN", "CAR", "HAT", "FAN"];
-      wordSelect.innerHTML = "Pick a word:<br>";
-      words.forEach(word => {
-        const btn = document.createElement("button");
-        btn.textContent = word;
-        btn.onclick = () => {
-          currentWord = word;
-          wordSelect.style.display = "none";
-          startLevel();
-        };
-        wordSelect.appendChild(btn);
-      });
-      wordSelect.style.display = "block";
+    function startGame() {
+      currentWord = prompt("What's your name?").toUpperCase().slice(0, 8);
+      usedWords.push(currentWord);
+      startLevel();
     }
 
     function startLevel() {
-      currentIndex = 0;
       letters.forEach(l => l.remove());
       letters = [];
+      currentIndex = 0;
       message.style.display = "none";
-      spawnLetters();
       timer = 60;
       timerEl.textContent = timer;
+      scoreEl.textContent = `Score: ${score}`;
+      clearInterval(intervalId);
       startTimer();
+      spawnFallingLetters(currentWord);
     }
 
-    function spawnLetters() {
-      let i = 0;
-      const drop = setInterval(() => {
-        if (i >= currentWord.length) {
-          clearInterval(drop);
-          return;
+    function startTimer() {
+      intervalId = setInterval(() => {
+        timer--;
+        timerEl.textContent = timer;
+        if (timer <= 0) {
+          clearInterval(intervalId);
+          alert("⏱ Time's up! Your score: " + score);
+          location.reload();
         }
-        createLetter(currentWord[i]);
-        i++;
       }, 1000);
     }
 
-    function createLetter(char) {
+    function spawnFallingLetters(word) {
+      let drop = setInterval(() => {
+        if (timer <= 0) return clearInterval(drop);
+
+        // Drop correct letter (next in word)
+        if (currentIndex < word.length) {
+          createLetter(word[currentIndex], true);
+        }
+
+        // Drop distractor letters
+        const distractors = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        for (let i = 0; i < 2; i++) {
+          const randChar = distractors[Math.floor(Math.random() * distractors.length)];
+          createLetter(randChar, false);
+        }
+
+      }, 1000);
+    }
+
+    function createLetter(char, isCorrect) {
       const letter = document.createElement("div");
       letter.className = "letter";
       letter.textContent = char;
@@ -169,7 +176,7 @@
 
       let top = -64;
       const fall = setInterval(() => {
-        top += 2;
+        top += 1.2;
         letter.style.top = top + "px";
 
         const basketRect = basket.getBoundingClientRect();
@@ -180,18 +187,22 @@
           letterRect.left < basketRect.right &&
           letterRect.right > basketRect.left
         ) {
-          if (char === currentWord[currentIndex]) {
-            letter.style.transform = "scale(1.2)";
+          if (isCorrect && char === currentWord[currentIndex]) {
+            letter.classList.add("flash");
             setTimeout(() => letter.remove(), 200);
             letters = letters.filter(l => l !== letter);
             currentIndex++;
             clearInterval(fall);
             if (currentIndex === currentWord.length) {
               score += 10;
-              scoreEl.textContent = "Score: " + score;
-              level++;
-              showSuccess();
+              clearInterval(intervalId);
+              showMessage();
             }
+          } else {
+            // Incorrect catch
+            letter.remove();
+            letters = letters.filter(l => l !== letter);
+            clearInterval(fall);
           }
         }
 
@@ -203,31 +214,26 @@
       }, 16);
     }
 
-    function showSuccess() {
+    function showMessage() {
       message.style.display = "block";
+      message.textContent = "🎉 Good job! 🎉";
       setTimeout(() => {
         message.style.display = "none";
-        if (level === 2) {
-          showWords();
-        } else {
-          startLevel();
+        level++;
+        if (level <= 12) {
+          const next = getNextWord();
+          if (next) {
+            currentWord = next;
+            startLevel();
+          } else {
+            alert("You've completed all 12 levels! 🎉 Final score: " + score);
+            location.reload();
+          }
         }
       }, 2000);
     }
 
-    function startTimer() {
-      const tick = setInterval(() => {
-        timer--;
-        timerEl.textContent = timer;
-        if (timer <= 0) {
-          clearInterval(tick);
-          alert("Time's up!");
-          location.reload(); // restart
-        }
-      }, 1000);
-    }
-
-    // Swipe basket
+    // Swipe control for basket
     let startX = null;
     basket.addEventListener("touchstart", e => {
       startX = e.touches[0].clientX;
@@ -247,7 +253,12 @@
       startX = null;
     });
 
-    askName();
+    // Prevent screen scroll
+    document.body.addEventListener("touchmove", function (e) {
+      e.preventDefault();
+    }, { passive: false });
+
+    startGame();
   </script>
 </body>
 </html>
