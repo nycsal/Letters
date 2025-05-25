@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Catch the Letters Game</title>
+  <title>Catch the Letters</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
       overflow: hidden;
+      background: #e0f7fa;
       font-family: sans-serif;
-      background: #f0f8ff;
     }
 
     #gameContainer {
@@ -19,7 +19,6 @@
       width: 100vw;
       height: 100vh;
       overflow: hidden;
-      background-color: #e6f7ff;
     }
 
     #basket {
@@ -30,50 +29,17 @@
       width: 100px;
       height: 60px;
       background-color: pink;
-      border-top-left-radius: 50px;
-      border-top-right-radius: 50px;
+      border-radius: 0 0 60px 60px;
       border: 4px solid #cc6699;
-      border-bottom: none;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
     }
 
-    .falling-letter {
+    .letter {
       position: absolute;
       font-size: 2.5rem;
       font-weight: bold;
-      animation: fall 4s linear forwards, spin 4s linear infinite;
       user-select: none;
       pointer-events: none;
-    }
-
-    @keyframes fall {
-      from { top: -60px; }
-      to { top: 100vh; }
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    #message {
-      position: absolute;
-      top: 30%;
-      width: 100%;
-      text-align: center;
-      font-size: 2rem;
-      color: #ff3399;
-    }
-
-    #caughtLetters {
-      position: absolute;
-      bottom: 90px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 1.5rem;
-      font-weight: bold;
+      transform: rotate(0deg);
     }
 
     #targetWord {
@@ -83,7 +49,25 @@
       text-align: center;
       font-size: 2rem;
       font-weight: bold;
-      color: #444;
+      color: #333;
+    }
+
+    #caughtLetters {
+      position: absolute;
+      bottom: 100px;
+      width: 100%;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    #message {
+      position: absolute;
+      top: 40%;
+      width: 100%;
+      text-align: center;
+      font-size: 2rem;
+      color: #ff4081;
     }
 
     #instructions {
@@ -102,10 +86,10 @@
       margin-top: 20px;
       padding: 10px 20px;
       font-size: 1rem;
-      background-color: #3399ff;
+      background-color: #007acc;
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
     }
   </style>
@@ -114,102 +98,97 @@
 
 <div id="gameContainer">
   <div id="targetWord"></div>
-  <div id="instructions">
-    Swipe left or right to move the basket. Catch the correct letters in the correct order!
-    <br/>
-    <button id="startButton">Start Game</button>
-  </div>
-  <div id="basket"></div>
   <div id="caughtLetters"></div>
   <div id="message"></div>
+  <div id="instructions">
+    Swipe left or right to move the basket.<br>
+    Catch the letters of the word in order!
+    <br><br>
+    <button id="startButton">Start</button>
+  </div>
+  <div id="basket"></div>
 </div>
 
 <script>
-const words = ["dog", "cat", "sun", "book", "cake", "fish", "star", "jump", "frog", "milk", "moon", "tree"];
+const words = ["dog", "cat", "sun", "book", "cake"];
 let playerName = "Maryam";
-let currentLevel = 0;
 let currentWord = "";
+let currentLevel = 0;
 let caughtLetters = "";
 let currentIndex = 0;
-let fallingInterval;
-let usedPositions = [];
-let gameRunning = false;
-
-const basket = document.getElementById("basket");
-const container = document.getElementById("gameContainer");
-const message = document.getElementById("message");
-const caughtDisplay = document.getElementById("caughtLetters");
-const targetDisplay = document.getElementById("targetWord");
-const instructions = document.getElementById("instructions");
-const startButton = document.getElementById("startButton");
+let dropping = true;
+let letterInterval;
+let basket = document.getElementById("basket");
+let container = document.getElementById("gameContainer");
+let caughtDisplay = document.getElementById("caughtLetters");
+let targetDisplay = document.getElementById("targetWord");
+let message = document.getElementById("message");
+let instructions = document.getElementById("instructions");
+let startButton = document.getElementById("startButton");
 
 startButton.addEventListener("click", () => {
   instructions.style.display = "none";
-  startGame();
+  startLevel();
 });
 
-function startGame() {
-  currentLevel = 0;
-  gameRunning = true;
-  nextLevel();
-}
-
-function nextLevel() {
-  clearInterval(fallingInterval);
-  removeAllLetters();
+function startLevel() {
+  currentWord = words[currentLevel];
+  currentIndex = 0;
   caughtLetters = "";
   caughtDisplay.textContent = "";
-  usedPositions = [];
-
-  if (currentLevel >= words.length) {
-    message.textContent = `🎉 Great job, ${playerName}! You finished all levels!`;
-    gameRunning = false;
-    return;
-  }
-
-  currentWord = words[currentLevel];
-  targetDisplay.textContent = `Catch: ${currentWord.toUpperCase()}`;
-  currentIndex = 0;
-  gameRunning = true;
+  targetDisplay.textContent = "Catch: " + currentWord.toUpperCase();
+  message.textContent = "";
+  dropping = true;
   dropLettersRepeatedly();
 }
 
 function dropLettersRepeatedly() {
-  const maxDrops = 20;
-  let drops = 0;
-
-  fallingInterval = setInterval(() => {
-    if (drops >= maxDrops || !gameRunning) return;
+  let count = 0;
+  letterInterval = setInterval(() => {
+    if (count >= 20 || !dropping) {
+      clearInterval(letterInterval);
+      return;
+    }
     dropLetter();
-    drops++;
-  }, 400);
+    count++;
+  }, 500);
 }
 
 function dropLetter() {
   const letter = document.createElement("div");
-  letter.className = "falling-letter";
+  letter.classList.add("letter");
 
-  const isCorrect = Math.random() < 0.4;
+  const isCorrect = Math.random() < 0.5;
   const char = isCorrect
     ? currentWord[Math.floor(Math.random() * currentWord.length)]
     : String.fromCharCode(65 + Math.floor(Math.random() * 26));
-
   letter.textContent = char;
 
-  let x;
-  do {
-    x = Math.floor(Math.random() * (window.innerWidth - 60));
-  } while (usedPositions.some(pos => Math.abs(pos - x) < 80));
-  usedPositions.push(x);
-  if (usedPositions.length > 10) usedPositions.shift();
-
+  const x = Math.random() * (window.innerWidth - 40);
+  let rotation = Math.random() * 360;
   letter.style.left = `${x}px`;
-  letter.style.top = `-60px`;
+  letter.style.top = `-50px`;
+  letter.style.transform = `rotate(${rotation}deg)`;
+
   container.appendChild(letter);
 
-  let fallTimer = setInterval(() => {
-    const letterRect = letter.getBoundingClientRect();
+  let y = -50;
+  let angle = 0;
+  const speed = 2;
+
+  const fall = setInterval(() => {
+    if (!container.contains(letter)) {
+      clearInterval(fall);
+      return;
+    }
+
+    y += speed;
+    angle += 2;
+    letter.style.top = `${y}px`;
+    letter.style.transform = `rotate(${angle}deg)`;
+
     const basketRect = basket.getBoundingClientRect();
+    const letterRect = letter.getBoundingClientRect();
 
     if (
       letterRect.bottom >= basketRect.top &&
@@ -217,13 +196,13 @@ function dropLetter() {
       letterRect.right > basketRect.left
     ) {
       container.removeChild(letter);
-      clearInterval(fallTimer);
+      clearInterval(fall);
       handleCaughtLetter(char);
-    } else if (letterRect.top > window.innerHeight) {
-      if (container.contains(letter)) container.removeChild(letter);
-      clearInterval(fallTimer);
+    } else if (y > window.innerHeight) {
+      container.removeChild(letter);
+      clearInterval(fall);
     }
-  }, 50);
+  }, 16);
 }
 
 function handleCaughtLetter(char) {
@@ -231,30 +210,28 @@ function handleCaughtLetter(char) {
     caughtLetters += char;
     caughtDisplay.textContent = caughtLetters;
     currentIndex++;
+
     if (currentIndex === currentWord.length) {
-      showLevelComplete();
+      dropping = false;
+      clearInterval(letterInterval);
+      setTimeout(() => {
+        message.textContent = `🌟 Good job, ${playerName}!`;
+        setTimeout(() => {
+          message.textContent = "";
+          currentLevel++;
+          if (currentLevel < words.length) {
+            startLevel();
+          } else {
+            message.textContent = `🎉 You finished all levels, ${playerName}!`;
+          }
+        }, 2000);
+      }, 500);
     }
   }
 }
 
-function showLevelComplete() {
-  clearInterval(fallingInterval);
-  gameRunning = false;
-  message.textContent = `💖 Good job, ${playerName}!`;
-
-  setTimeout(() => {
-    message.textContent = "";
-    currentLevel++;
-    nextLevel();
-  }, 2000);
-}
-
-function removeAllLetters() {
-  document.querySelectorAll(".falling-letter").forEach(el => el.remove());
-}
-
+// Mobile swipe controls
 let startX = null;
-
 container.addEventListener("touchstart", e => {
   startX = e.touches[0].clientX;
 });
