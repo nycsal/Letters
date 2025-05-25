@@ -1,219 +1,390 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Maze Chase Game</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: black;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-      height: 100%;
-      touch-action: manipulation;
-    }
-    #game {
-      display: block;
-      background: #111;
-      border: 4px solid #fff;
-      margin: 0 auto;
-      max-width: 100%;
-      height: auto;
-    }
-    #joystick {
-      position: fixed;
-      bottom: 10px;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      z-index: 10;
-    }
-    .btn {
-      width: 60px;
-      height: 60px;
-      background: #333;
-      color: #fff;
-      font-size: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      border: 2px solid white;
-    }
-    @media (max-width: 500px) {
-      .btn {
-        width: 50px;
-        height: 50px;
-        font-size: 20px;
-      }
-    }
-  </style>
+    <meta charset="UTF-D">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Fall Frenzy</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        #gameContainer {
+            border: 2px solid #333;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            position: relative;
+            background-color: #fff;
+            overflow: hidden; /* Prevents bullets from appearing outside */
+        }
+        #gameCanvas {
+            display: block;
+            background-color: #e0e0ff; /* Light blue sky */
+        }
+        #uiContainer {
+            display: flex;
+            justify-content: space-around;
+            width: 600px; /* Should match canvas width */
+            padding: 10px 0;
+            background-color: #333;
+            color: #fff;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        .ui-element {
+            text-align: center;
+        }
+        #currentWordDisplay {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffeb3b; /* Yellow for current word */
+            min-height: 25px;
+        }
+        #targetWordDisplay {
+            font-size: 1.1em;
+            color: #80cbc4; /* Teal for target word */
+        }
+        #scoreboard {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        #scoreboard h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        #highScoresList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #highScoresList li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        #highScoresList li:last-child {
+            border-bottom: none;
+        }
+        .start-button, .restart-button {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            color: white;
+            background-color: #4CAF50; /* Green */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background-color 0.3s ease;
+        }
+        .start-button:hover, .restart-button:hover {
+            background-color: #45a049;
+        }
+        #messageDisplay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            text-align: center;
+            z-index: 10;
+            display: none; /* Hidden by default */
+        }
+    </style>
 </head>
 <body>
 
-<canvas id="game" width="400" height="400"></canvas>
+    <h1>Letter Fall Frenzy  Buchstaben-Wahnsinn 🔡💥</h1>
 
-<div id="joystick">
-  <div class="btn" onclick="move('up')">↑</div>
-  <div class="btn" onclick="move('left')">←</div>
-  <div class="btn" onclick="move('down')">↓</div>
-  <div class="btn" onclick="move('right')">→</div>
-</div>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        <div id="messageDisplay"></div>
+    </div>
 
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-const size = 20;
-const mapWidth = 20;
-const mapHeight = 20;
+    <div id="uiContainer">
+        <div class="ui-element">Score: <span id="score">0</span></div>
+        <div class="ui-element">Level: <span id="level">1</span></div>
+        <div class="ui-element">Lives: <span id="lives">3</span></div>
+        <div class="ui-element">Target: <span id="targetWordDisplay">START</span></div>
+        <div class="ui-element">Current: <span id="currentWordDisplay"></span></div>
+    </div>
 
-let level = 1;
-let map = [];
-let player = { x: 1, y: 1 };
-let ghost = { x: 18, y: 18 };
-let direction = { x: 0, y: 0 };
-let pelletsLeft = 0;
+    <button class="start-button" id="startButton">Start Game</button>
+    <button class="restart-button" id="restartButton" style="display: none;">Play Again?</button>
 
-const levels = [
-  [
-    "####################",
-    "#........#.........#",
-    "#.####.#.#.###.###.#",
-    "#.#....#.#...#.....#",
-    "#.#.##.#.#####.###.#",
-    "#.#....#.....#...#.#",
-    "#.######.###.###.#.#",
-    "#........#.#.....#.#",
-    "###.####.#.#######.#",
-    "#.....#..#.........#",
-    "#.###.#.#####.#####E",
-    "#.#.....#...#.#.....",
-    "#.#.#####.#.#.#.###.",
-    "#.#.....#.#.#.#.#.#.",
-    "#.#####.#.#.#.#.#.#.",
-    "#.....#.#...#.#.#.#.",
-    "#####.#.#####.#.#.#.",
-    "#.....#.......#.#.#.",
-    "#.#############.#.#.",
-    "#P...............G#"
-  ]
-];
+    <div id="scoreboard">
+        <h2>🏆 High Scores 🏆</h2>
+        <ul id="highScoresList">
+            <li>No scores yet!</li>
+        </ul>
+    </div>
 
-function loadLevel(n) {
-  let layout = levels[n - 1];
-  map = [];
-  pelletsLeft = 0;
-  for (let y = 0; y < mapHeight; y++) {
-    let row = [];
-    for (let x = 0; x < mapWidth; x++) {
-      let ch = layout[y][x];
-      if (ch === "P") {
-        player = { x, y };
-        row.push(".");
-        pelletsLeft++;
-      } else if (ch === "G") {
-        ghost = { x, y };
-        row.push(".");
-        pelletsLeft++;
-      } else if (ch === "E") {
-        row.push("E");
-      } else {
-        row.push(ch);
-        if (ch === ".") pelletsLeft++;
-      }
-    }
-    map.push(row);
-  }
-}
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = 0; x < mapWidth; x++) {
-      const cell = map[y][x];
-      if (cell === "#") {
-        ctx.fillStyle = "#555";
-        ctx.fillRect(x * size, y * size, size, size);
-      } else if (cell === ".") {
-        ctx.fillStyle = "#ff0";
-        ctx.beginPath();
-        ctx.arc(x * size + size / 2, y * size + size / 2, 3, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (cell === "E") {
-        ctx.fillStyle = "#0f0";
-        ctx.fillRect(x * size + 5, y * size + 5, size - 10, size - 10);
-      }
-    }
-  }
+        // UI Elements
+        const scoreDisplay = document.getElementById('score');
+        const levelDisplay = document.getElementById('level');
+        const livesDisplay = document.getElementById('lives');
+        const currentWordDisplay = document.getElementById('currentWordDisplay');
+        const targetWordDisplay = document.getElementById('targetWordDisplay');
+        const messageDisplay = document.getElementById('messageDisplay');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const highScoresList = document.getElementById('highScoresList');
 
-  // Player
-  ctx.fillStyle = "#0ff";
-  ctx.beginPath();
-  ctx.arc(player.x * size + size / 2, player.y * size + size / 2, 8, 0, Math.PI * 2);
-  ctx.fill();
+        // Game Settings
+        let player, bullets, fallingLetters, score, level, lives, currentWord, targetWords, letterSpeed, letterSpawnRate;
+        let gameInterval;
+        let gameActive = false;
+        const playerWidth = 50;
+        const playerHeight = 20;
+        const playerSpeed = 15;
+        const bulletSpeed = 7;
+        const bulletRadius = 5;
+        const letterSize = 20;
+        let maxLives = 3;
 
-  // Ghost
-  ctx.fillStyle = "#f00";
-  ctx.beginPath();
-  ctx.arc(ghost.x * size + size / 2, ghost.y * size + size / 2, 8, 0, Math.PI * 2);
-  ctx.fill();
-}
+        const levelSettings = [
+            { words: ["CAT", "DOG", "SUN"], speed: 0.5, spawn: 1500 }, // Level 1
+            { words: ["CODE", "GAME", "HTML", "FUN"], speed: 0.75, spawn: 1200 }, // Level 2
+            { words: ["PYTHON", "GITHUB", "LEVELS", "AWESOME"], speed: 1, spawn: 1000 }  // Level 3
+        ];
+        let currentLevelWords = [];
+        let currentTargetWord = "";
 
-function move(dir) {
-  const moves = {
-    up: { x: 0, y: -1 },
-    down: { x: 0, y: 1 },
-    left: { x: -1, y: 0 },
-    right: { x: 1, y: 0 }
-  };
-  direction = moves[dir];
-}
+        const highScores = JSON.parse(localStorage.getItem('letterFallHighScores')) || [];
 
-function update() {
-  const nx = player.x + direction.x;
-  const ny = player.y + direction.y;
-  if (map[ny] && map[ny][nx] && map[ny][nx] !== "#") {
-    player.x = nx;
-    player.y = ny;
-    if (map[ny][nx] === ".") {
-      map[ny][nx] = " ";
-      pelletsLeft--;
-    } else if (map[ny][nx] === "E") {
-      alert("🎉 You completed the level!");
-      level = 1;
-      loadLevel(level);
-      return;
-    }
-  }
+        function updateHighScoresDisplay() {
+            highScoresList.innerHTML = '';
+            if (highScores.length === 0) {
+                highScoresList.innerHTML = '<li>No scores yet!</li>';
+                return;
+            }
+            highScores.sort((a, b) => b.score - a.score); // Sort descending
+            const topScores = highScores.slice(0, 5); // Show top 5
+            topScores.forEach(scoreItem => {
+                const li = document.createElement('li');
+                li.textContent = `${scoreItem.name} - ${scoreItem.score}`;
+                highScoresList.appendChild(li);
+            });
+        }
 
-  // Ghost chase
-  let dx = ghost.x - player.x;
-  let dy = ghost.y - player.y;
-  if (Math.abs(dx) > Math.abs(dy)) {
-    ghost.x += dx > 0 ? -1 : 1;
-  } else {
-    ghost.y += dy > 0 ? -1 : 1;
-  }
-  if (map[ghost.y][ghost.x] === "#") {
-    ghost.x -= dx > 0 ? -1 : 1;
-    ghost.y -= dy > 0 ? -1 : 1;
-  }
+        function addHighScore(name, score) {
+            highScores.push({ name, score });
+            localStorage.setItem('letterFallHighScores', JSON.stringify(highScores));
+            updateHighScoresDisplay();
+        }
 
-  if (ghost.x === player.x && ghost.y === player.y) {
-    alert("💀 You got caught!");
-    loadLevel(level);
-  }
+        function initGame() {
+            player = {
+                x: canvas.width / 2 - playerWidth / 2,
+                y: canvas.height - playerHeight - 10,
+                width: playerWidth,
+                height: playerHeight,
+                color: '#007bff' // Blue
+            };
+            bullets = [];
+            fallingLetters = [];
+            score = 0;
+            level = 1;
+            lives = maxLives;
+            currentWord = "";
+            setupLevel();
+            updateUI();
+            if (gameInterval) clearInterval(gameInterval);
+        }
 
-  draw();
-}
+        function setupLevel() {
+            const settings = levelSettings[level - 1];
+            if (!settings) {
+                gameOver(true); // Won the game
+                return;
+            }
+            currentLevelWords = [...settings.words];
+            letterSpeed = settings.speed;
+            letterSpawnRate = settings.spawn;
+            pickNewTargetWord();
+            levelDisplay.textContent = level;
+        }
 
-loadLevel(level);
-draw();
-setInterval(update, 400);
-</script>
-</body>
-</html>
+        function pickNewTargetWord() {
+            if (currentLevelWords.length === 0) {
+                levelUp();
+                return;
+            }
+            const randomIndex = Math.floor(Math.random() * currentLevelWords.length);
+            currentTargetWord = currentLevelWords.splice(randomIndex, 1)[0];
+            targetWordDisplay.textContent = currentTargetWord;
+            currentWord = ""; // Reset current word when a new target is set
+            currentWordDisplay.textContent = "";
+        }
+
+        function levelUp() {
+            level++;
+            showMessage(`Level ${level}!`, 1500);
+            if (level > levelSettings.length) {
+                gameOver(true); // Player won all levels
+            } else {
+                setupLevel();
+                score += 100 * (level -1) ; // Bonus for leveling up
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            scoreDisplay.textContent = score;
+            levelDisplay.textContent = level;
+            livesDisplay.textContent = lives;
+            currentWordDisplay.textContent = currentWord;
+        }
+
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            // Add a little "cannon"
+            ctx.fillStyle = '#333';
+            ctx.fillRect(player.x + player.width / 2 - 5, player.y - 10, 10, 10);
+        }
+
+        function drawBullets() {
+            bullets.forEach(bullet => {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+                ctx.fillStyle = bullet.color;
+                ctx.fill();
+                ctx.closePath();
+            });
+        }
+
+        function drawFallingLetters() {
+            fallingLetters.forEach(letterObj => {
+                ctx.fillStyle = letterObj.color;
+                ctx.font = `${letterSize}px 'Courier New', Courier, monospace`;
+                ctx.fillText(letterObj.char, letterObj.x, letterObj.y);
+            });
+        }
+
+        function spawnLetter() {
+            if (!gameActive || !currentTargetWord) return;
+
+            let charToSpawn;
+            // Increase chance of spawning a needed letter
+            if (currentWord.length < currentTargetWord.length && Math.random() < 0.6) { // 60% chance for a needed letter
+                const neededLetters = currentTargetWord.split('').filter(c => !currentWord.includes(c));
+                if (neededLetters.length > 0 && currentTargetWord.includes(neededLetters[0])) {
+                     charToSpawn = currentTargetWord[currentWord.length]; // Try to spawn next letter in sequence
+                } else {
+                    // If next letter isn't good or not available, pick any from target
+                    const targetChars = currentTargetWord.split('');
+                    charToSpawn = targetChars[Math.floor(Math.random() * targetChars.length)];
+                }
+            } else { // 40% chance for a random letter (distractor or useful)
+                const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                charToSpawn = alphabet[Math.floor(Math.random() * alphabet.length)];
+            }
+
+
+            const x = Math.random() * (canvas.width - letterSize);
+            const y = 0;
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ff00ff', '#ffa500', '#00ffff']; // Red, Green, Blue, Magenta, Orange, Cyan
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            fallingLetters.push({ char: charToSpawn, x, y, color });
+        }
+
+
+        let lastSpawnTime = 0;
+        function updateGame() {
+            if (!gameActive) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawPlayer();
+            drawBullets();
+            drawFallingLetters();
+
+            // Move Bullets
+            bullets.forEach((bullet, bIndex) => {
+                bullet.y -= bulletSpeed;
+                if (bullet.y < 0) {
+                    bullets.splice(bIndex, 1);
+                }
+            });
+
+            // Move Letters & Collision Detection
+            fallingLetters.forEach((letter, lIndex) => {
+                letter.y += letterSpeed;
+
+                // Letter reaches bottom
+                if (letter.y > canvas.height) {
+                    fallingLetters.splice(lIndex, 1);
+                    lives--;
+                    updateUI();
+                    if (lives <= 0) {
+                        gameOver(false);
+                    }
+                    return; // Skip to next letter to avoid issues with removed element
+                }
+
+                // Bullet-Letter Collision
+                bullets.forEach((bullet, bIndex) => {
+                    const dist = Math.sqrt(
+                        (bullet.x - (letter.x + letterSize / 2)) ** 2 +
+                        (bullet.y - (letter.y - letterSize / 2)) ** 2
+                    );
+
+                    if (dist < bullet.radius + letterSize / 2) {
+                        // Hit!
+                        bullets.splice(bIndex, 1);
+                        fallingLetters.splice(lIndex, 1);
+
+                        currentWord += letter.char;
+                        currentWordDisplay.textContent = currentWord;
+                        score += 10; // Points for hitting a letter
+
+                        // Check if currentWord matches targetWord
+                        if (currentWord === currentTargetWord) {
+                            score += 50; // Bonus for completing word
+                            showMessage(`"${currentTargetWord}" formed! +50`, 1500, '#4CAF50');
+                            pickNewTargetWord();
+                        } else if (currentTargetWord.startsWith(currentWord)) {
+                            // Good partial match
+                            score += 5; // Small bonus for correct sequence
+                        } else {
+                            // Incorrect letter for the sequence
+                            showMessage(`Oops! Need letters for "${currentTargetWord}"`, 1000, '#f44336');
+                            currentWord = ""; // Reset current word if sequence is broken
+                            currentWordDisplay.textContent = "";
+                            lives--; // Penalty for wrong letter sequence if desired
+                            if (lives <= 0) gameOver(false);
+                        }
+                        updateUI();
+                    }
+                });
+            });
+
+            // Spawn new letters
+            const currentTime = Date.now();
+            if (currentTime - lastSpawnTime > letterSpawnRate) {
+                spawnLetter();
+                lastSpawnTime = currentTime;
+            }
+        }
+
+        function shoot() {
+            if (!gameActive) return;
+            const bullet =
