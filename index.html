@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Balloon Pop Game</title>
   <style>
     body {
@@ -14,9 +14,10 @@
 
     #startScreen, #levelComplete, #gameOver {
       position: absolute;
-      top: 30%;
+      top: 25%;
       width: 100%;
       display: none;
+      z-index: 10;
     }
 
     #gameArea {
@@ -27,8 +28,8 @@
 
     .balloon {
       position: absolute;
-      width: 60px;
-      height: 80px;
+      width: 80px;
+      height: 100px;
       background: red;
       border-radius: 50% 50% 45% 45%;
       cursor: pointer;
@@ -44,43 +45,46 @@
       position: absolute;
       top: 10px;
       left: 10px;
-      font-size: 18px;
+      font-size: 28px;
       background: white;
-      padding: 5px 10px;
+      padding: 10px 20px;
       border-radius: 10px;
+      z-index: 5;
     }
 
     .message {
-      font-size: 32px;
+      font-size: 36px;
       color: #333;
+      font-weight: bold;
     }
 
     button {
-      font-size: 20px;
-      padding: 10px 20px;
-      margin-top: 20px;
+      font-size: 28px;
+      padding: 15px 30px;
+      margin-top: 30px;
       border: none;
       background: #ff66cc;
       color: white;
-      border-radius: 10px;
+      border-radius: 12px;
       cursor: pointer;
     }
 
     input {
-      font-size: 20px;
-      padding: 10px;
-      border-radius: 10px;
+      font-size: 28px;
+      padding: 15px;
+      width: 60%;
+      border-radius: 12px;
       border: 2px solid #ccc;
     }
   </style>
 </head>
 <body>
   <div id="startScreen">
-    <h1>🎈 Welcome to Balloon Pop! 🎈</h1>
-    <p>What's your name?</p>
+    <h1 style="font-size: 48px;">🎈 Welcome to Balloon Pop! 🎈</h1>
+    <p style="font-size: 32px;">What's your name?</p>
     <input type="text" id="playerNameInput" />
     <br />
-    <button onclick="startGame()">Start Game</button>
+    <button id="startButton">Start Game</button>
   </div>
 
   <div id="gameArea"></div>
@@ -96,6 +100,7 @@
     const levelComplete = document.getElementById("levelComplete");
     const gameOver = document.getElementById("gameOver");
     const startScreen = document.getElementById("startScreen");
+    const startButton = document.getElementById("startButton");
 
     let playerName = "";
     let score = 0;
@@ -104,19 +109,20 @@
     let poppedThisLevel = 0;
     let gameInterval;
 
-    function startGame() {
-      playerName = document.getElementById("playerNameInput").value || "Player";
-      playerNameDisplay.textContent = "🎉 Good luck, " + playerName + "!";
+    startButton.addEventListener("click", function () {
+      const nameInput = document.getElementById("playerNameInput").value.trim();
+      playerName = nameInput !== "" ? nameInput : "Kiddo";
+      playerNameDisplay.textContent = "🎉 Go, " + playerName + "!";
       startScreen.style.display = "none";
       nextLevel();
-    }
+    });
 
     function nextLevel() {
       levelComplete.style.display = "none";
       gameOver.style.display = "none";
       poppedThisLevel = 0;
       gameArea.innerHTML = "";
-      let intervalSpeed = Math.max(600 - level * 60, 200);
+      let intervalSpeed = Math.max(700 - level * 60, 250);
       gameInterval = setInterval(spawnBalloon, intervalSpeed);
     }
 
@@ -136,7 +142,7 @@
       balloon.classList.add("balloon");
       const color = colors[Math.floor(Math.random() * colors.length)];
       balloon.style.backgroundColor = color;
-      balloon.style.left = Math.random() * (window.innerWidth - 60) + "px";
+      balloon.style.left = Math.random() * (window.innerWidth - 80) + "px";
       balloon.style.animationDuration = (5 - level * 0.3) + "s";
 
       balloon.onclick = () => {
@@ -152,17 +158,17 @@
     }
 
     function showLevelComplete() {
-      levelComplete.innerHTML = `🎉 Good job, ${playerName}! 🎉<br>Level ${level - 1} complete!`;
+      levelComplete.innerHTML = `🎉 Good job, ${playerName}!<br>Level ${level - 1} complete!`;
       levelComplete.style.display = "block";
       setTimeout(nextLevel, 3000);
     }
 
     function showGameOver() {
-      gameOver.innerHTML = `🏆 Amazing work, ${playerName}! You finished all 7 levels! 🎈`;
+      gameOver.innerHTML = `🏆 Yay, ${playerName}!<br>You finished all 7 levels! 🎈`;
       gameOver.style.display = "block";
     }
 
-    // Start screen first
+    // Show start screen first
     startScreen.style.display = "block";
   </script>
 </body>
