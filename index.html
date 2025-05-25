@@ -1,175 +1,210 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8" />
-  <title>Balloon Pop Game</title>
+  <title>Mini Maze Chase</title>
   <style>
     body {
       margin: 0;
+      background: black;
       overflow: hidden;
-      font-family: 'Comic Sans MS', cursive;
-      background: linear-gradient(to top, #cceeff, #ffffff);
-      text-align: center;
+      font-family: Arial, sans-serif;
     }
-
-    #startScreen, #levelComplete, #gameOver {
-      position: absolute;
-      top: 25%;
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #111;
+      border: 4px solid #fff;
+    }
+    #joystick {
+      position: fixed;
+      bottom: 10px;
       width: 100%;
-      display: none;
-      z-index: 10;
+      display: flex;
+      justify-content: center;
+      gap: 30px;
     }
-
-    #gameArea {
-      position: relative;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .balloon {
-      position: absolute;
-      width: 80px;
-      height: 100px;
-      background: red;
-      border-radius: 50% 50% 45% 45%;
-      cursor: pointer;
-      animation: floatUp linear;
-    }
-
-    @keyframes floatUp {
-      0% { bottom: -100px; }
-      100% { bottom: 110%; }
-    }
-
-    #playerNameDisplay {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 28px;
-      background: white;
-      padding: 10px 20px;
-      border-radius: 10px;
-      z-index: 5;
-    }
-
-    .message {
-      font-size: 36px;
-      color: #333;
-      font-weight: bold;
-    }
-
-    button {
-      font-size: 28px;
-      padding: 15px 30px;
-      margin-top: 30px;
-      border: none;
-      background: #ff66cc;
+    .btn {
+      width: 60px;
+      height: 60px;
+      background: #444;
       color: white;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-
-    input {
-      font-size: 28px;
-      padding: 15px;
-      width: 60%;
-      border-radius: 12px;
-      border: 2px solid #ccc;
+      font-size: 24px;
+      border-radius: 10px;
+      text-align: center;
+      line-height: 60px;
+      user-select: none;
     }
   </style>
 </head>
 <body>
-  <div id="startScreen">
-    <h1 style="font-size: 48px;">🎈 Welcome to Balloon Pop! 🎈</h1>
-    <p style="font-size: 32px;">What's your name?</p>
-    <input type="text" id="playerNameInput" />
-    <br />
-    <button id="startButton">Start Game</button>
-  </div>
+<canvas id="game" width="400" height="400"></canvas>
+<div id="joystick">
+  <div class="btn" onclick="move('up')">↑</div>
+  <div class="btn" onclick="move('left')">←</div>
+  <div class="btn" onclick="move('down')">↓</div>
+  <div class="btn" onclick="move('right')">→</div>
+</div>
 
-  <div id="gameArea"></div>
-  <div id="playerNameDisplay"></div>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const size = 20;
+const mapWidth = 20;
+const mapHeight = 20;
 
-  <div id="levelComplete" class="message"></div>
-  <div id="gameOver" class="message"></div>
+let level = 1;
+let map = [];
+let player = { x: 1, y: 1 };
+let ghost = { x: 18, y: 18 };
+let direction = { x: 0, y: 0 };
+let pelletsLeft = 0;
 
-  <script>
-    const colors = ['red', 'blue', 'green', 'orange', 'purple', 'pink', 'yellow'];
-    const gameArea = document.getElementById("gameArea");
-    const playerNameDisplay = document.getElementById("playerNameDisplay");
-    const levelComplete = document.getElementById("levelComplete");
-    const gameOver = document.getElementById("gameOver");
-    const startScreen = document.getElementById("startScreen");
-    const startButton = document.getElementById("startButton");
+const levels = [
+  [
+    "####################",
+    "#........#.........#",
+    "#.####.#.#.###.###.#",
+    "#.#....#.#...#.....#",
+    "#.#.##.#.#####.###.#",
+    "#.#....#.....#...#.#",
+    "#.######.###.###.#.#",
+    "#........#.#.....#.#",
+    "###.####.#.#######.#",
+    "#.....#..#.........#",
+    "#.###.#.#####.#####E",
+    "#.#.....#...#.#.....",
+    "#.#.#####.#.#.#.###.",
+    "#.#.....#.#.#.#.#.#.",
+    "#.#####.#.#.#.#.#.#.",
+    "#.....#.#...#.#.#.#.",
+    "#####.#.#####.#.#.#.",
+    "#.....#.......#.#.#.",
+    "#.#############.#.#.",
+    "#P...............G#"
+  ],
+  // You can define more levels here (same dimensions, different walls/layout)
+];
 
-    let playerName = "";
-    let score = 0;
-    let level = 1;
-    let balloonsToPop = 10;
-    let poppedThisLevel = 0;
-    let gameInterval;
-
-    startButton.addEventListener("click", function () {
-      const nameInput = document.getElementById("playerNameInput").value.trim();
-      playerName = nameInput !== "" ? nameInput : "Kiddo";
-      playerNameDisplay.textContent = "🎉 Go, " + playerName + "!";
-      startScreen.style.display = "none";
-      nextLevel();
-    });
-
-    function nextLevel() {
-      levelComplete.style.display = "none";
-      gameOver.style.display = "none";
-      poppedThisLevel = 0;
-      gameArea.innerHTML = "";
-      let intervalSpeed = Math.max(700 - level * 60, 250);
-      gameInterval = setInterval(spawnBalloon, intervalSpeed);
-    }
-
-    function spawnBalloon() {
-      if (poppedThisLevel >= balloonsToPop) {
-        clearInterval(gameInterval);
-        if (level >= 7) {
-          showGameOver();
-        } else {
-          level++;
-          showLevelComplete();
-        }
-        return;
+function loadLevel(n) {
+  let layout = levels[n - 1];
+  map = [];
+  pelletsLeft = 0;
+  for (let y = 0; y < mapHeight; y++) {
+    let row = [];
+    for (let x = 0; x < mapWidth; x++) {
+      let ch = layout[y][x];
+      if (ch === "P") {
+        player = { x, y };
+        row.push(".");
+        pelletsLeft++;
+      } else if (ch === "G") {
+        ghost = { x, y };
+        row.push(".");
+        pelletsLeft++;
+      } else if (ch === "E") {
+        row.push("E");
+      } else {
+        row.push(ch);
+        if (ch === ".") pelletsLeft++;
       }
-
-      const balloon = document.createElement("div");
-      balloon.classList.add("balloon");
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      balloon.style.backgroundColor = color;
-      balloon.style.left = Math.random() * (window.innerWidth - 80) + "px";
-      balloon.style.animationDuration = (5 - level * 0.3) + "s";
-
-      balloon.onclick = () => {
-        balloon.remove();
-        poppedThisLevel++;
-      };
-
-      gameArea.appendChild(balloon);
-
-      setTimeout(() => {
-        if (balloon.parentElement) balloon.remove();
-      }, 6000);
     }
+    map.push(row);
+  }
+}
 
-    function showLevelComplete() {
-      levelComplete.innerHTML = `🎉 Good job, ${playerName}!<br>Level ${level - 1} complete!`;
-      levelComplete.style.display = "block";
-      setTimeout(nextLevel, 3000);
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < mapHeight; y++) {
+    for (let x = 0; x < mapWidth; x++) {
+      const cell = map[y][x];
+      if (cell === "#") {
+        ctx.fillStyle = "#555";
+        ctx.fillRect(x * size, y * size, size, size);
+      } else if (cell === ".") {
+        ctx.fillStyle = "#ff0";
+        ctx.beginPath();
+        ctx.arc(x * size + size / 2, y * size + size / 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (cell === "E") {
+        ctx.fillStyle = "#0f0";
+        ctx.fillRect(x * size + 5, y * size + 5, size - 10, size - 10);
+      }
     }
+  }
 
-    function showGameOver() {
-      gameOver.innerHTML = `🏆 Yay, ${playerName}!<br>You finished all 7 levels! 🎈`;
-      gameOver.style.display = "block";
+  // Player
+  ctx.fillStyle = "#0ff";
+  ctx.beginPath();
+  ctx.arc(player.x * size + size / 2, player.y * size + size / 2, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ghost
+  ctx.fillStyle = "#f00";
+  ctx.beginPath();
+  ctx.arc(ghost.x * size + size / 2, ghost.y * size + size / 2, 8, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function move(dir) {
+  const moves = {
+    up: { x: 0, y: -1 },
+    down: { x: 0, y: 1 },
+    left: { x: -1, y: 0 },
+    right: { x: 1, y: 0 }
+  };
+  direction = moves[dir];
+}
+
+function update() {
+  // Player move
+  const nx = player.x + direction.x;
+  const ny = player.y + direction.y;
+  if (map[ny] && map[ny][nx] && map[ny][nx] !== "#") {
+    player.x = nx;
+    player.y = ny;
+    if (map[ny][nx] === ".") {
+      map[ny][nx] = " ";
+      pelletsLeft--;
+    } else if (map[ny][nx] === "E") {
+      level++;
+      if (levels[level - 1]) {
+        loadLevel(level);
+      } else {
+        alert("🎉 You beat all levels!");
+        level = 1;
+        loadLevel(level);
+      }
+      return;
     }
+  }
 
-    // Show start screen first
-    startScreen.style.display = "block";
-  </script>
+  // Ghost chase
+  let dx = ghost.x - player.x;
+  let dy = ghost.y - player.y;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    ghost.x += dx > 0 ? -1 : 1;
+  } else {
+    ghost.y += dy > 0 ? -1 : 1;
+  }
+  if (map[ghost.y][ghost.x] === "#") {
+    ghost.x -= dx > 0 ? -1 : 1;
+    ghost.y -= dy > 0 ? -1 : 1;
+  }
+
+  // Game over
+  if (ghost.x === player.x && ghost.y === player.y) {
+    alert("💀 You got caught! Game Over.");
+    level = 1;
+    loadLevel(level);
+  }
+
+  draw();
+}
+
+loadLevel(level);
+draw();
+setInterval(update, 400);
+</script>
 </body>
 </html>
