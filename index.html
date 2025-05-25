@@ -5,105 +5,101 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Catch the Letters Game</title>
   <style>
-    body, html {
+    html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
-      font-family: sans-serif;
       background: #cdeefd;
+      font-family: Comic Sans MS, sans-serif;
       user-select: none;
       touch-action: none;
     }
-    #startScreen, #gameOver {
+    #startScreen {
       position: absolute;
       width: 100%;
       height: 100%;
-      background: #fff;
+      background: white;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 5;
+      z-index: 10;
     }
-    #startScreen h1 {
-      font-size: 2em;
+    #startScreen input {
+      font-size: 1.5em;
+      padding: 10px;
+      margin: 10px;
     }
-    #startButton {
+    #startScreen button {
       font-size: 1.5em;
       padding: 10px 20px;
-      margin-top: 20px;
       background: pink;
       border: none;
       border-radius: 10px;
-    }
-    canvas {
-      display: block;
+      cursor: pointer;
     }
     #caughtDisplay {
       position: absolute;
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 1.5em;
+      font-size: 2em;
       color: darkblue;
-      z-index: 2;
+      z-index: 5;
+    }
+    canvas {
+      display: block;
     }
   </style>
 </head>
 <body>
   <div id="startScreen">
-    <h1>🎮 Catch the letters of your name!</h1>
-    <p>Catch them in the correct order using the pink basket.</p>
-    <input type="text" id="nameInput" placeholder="Enter your name" />
-    <button id="startButton">Start</button>
+    <h1>🎮 Catch the Letters!</h1>
+    <p>Catch the letters of your name in order using the pink basket.</p>
+    <input id="nameInput" placeholder="Enter your name" />
+    <button id="startButton">Start Game</button>
   </div>
+
   <div id="caughtDisplay"></div>
   <canvas id="gameCanvas"></canvas>
 
   <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const startScreen = document.getElementById('startScreen');
-    const startButton = document.getElementById('startButton');
-    const nameInput = document.getElementById('nameInput');
-    const caughtDisplay = document.getElementById('caughtDisplay');
-
-    let letters = [];
-    let caughtLetters = '';
-    let basket = { x: 150, y: 550, width: 100, height: 30, color: 'pink' };
-    let targetWord = '';
-    let gameStarted = false;
-    let fallInterval;
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const caughtDisplay = document.getElementById("caughtDisplay");
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    function randomX() {
-      return Math.random() * (canvas.width - 40);
+    let basket = { x: canvas.width / 2 - 50, y: canvas.height - 60, width: 100, height: 30, color: "pink" };
+    let letters = [];
+    let targetWord = "";
+    let caughtLetters = "";
+    let allLevels = [];
+    let falling = true;
+
+    function createLetter(char, isTarget) {
+      return {
+        char: char,
+        x: Math.random() * (canvas.width - 40),
+        y: -50,
+        speed: 2 + Math.random() * 1.5,
+        color: isTarget ? "orange" : "gray",
+        caught: false,
+        animate: 0
+      };
     }
 
-    function spawnLetters() {
-      if (caughtLetters.length < targetWord.length) {
-        let allLetters = targetWord.split('').concat(generateDistractors(16));
-        allLetters = shuffle(allLetters);
-        letters = allLetters.map(letter => ({
-          char: letter,
-          x: randomX(),
-          y: -Math.random() * 300,
-          speed: 2 + Math.random() * 2,
-          color: targetWord.includes(letter) ? 'orange' : 'gray'
-        }));
+    function generateLetters() {
+      let required = targetWord.slice(caughtLetters.length).split('');
+      let distractors = [];
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      while (distractors.length < 20 - required.length) {
+        let random = alphabet[Math.floor(Math.random() * alphabet.length)];
+        if (!targetWord.includes(random)) distractors.push(random);
       }
-    }
-
-    function generateDistractors(count) {
-      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      let result = [];
-      while (result.length < count) {
-        let rand = alphabet[Math.floor(Math.random() * alphabet.length)];
-        if (!targetWord.includes(rand)) result.push(rand);
-      }
-      return result;
+      let drops = [...required.map(c => createLetter(c, true)), ...distractors.map(c => createLetter(c, false))];
+      return shuffle(drops);
     }
 
     function shuffle(arr) {
@@ -122,32 +118,38 @@
     }
 
     function drawLetters() {
-      letters.forEach(letter => {
-        ctx.fillStyle = letter.color;
-        ctx.font = "32px Comic Sans MS";
+      for (let letter of letters) {
+        if (letter.animate > 0) {
+          ctx.fillStyle = 'yellow';
+          ctx.font = "bold 40px Comic Sans MS";
+          letter.animate--;
+        } else {
+          ctx.fillStyle = letter.color;
+          ctx.font = "32px Comic Sans MS";
+        }
         ctx.fillText(letter.char, letter.x, letter.y);
         letter.y += letter.speed;
-      });
+      }
     }
 
-    function detectCatch() {
-      letters = letters.filter(letter => {
+    function checkCatch() {
+      for (let letter of letters) {
         if (
+          !letter.caught &&
           letter.y + 20 >= basket.y &&
-          letter.x > basket.x &&
-          letter.x < basket.x + basket.width
+          letter.x >= basket.x &&
+          letter.x <= basket.x + basket.width &&
+          letter.char === targetWord[caughtLetters.length]
         ) {
-          if (letter.char === targetWord[caughtLetters.length]) {
-            caughtLetters += letter.char;
-            caughtDisplay.innerText = caughtLetters;
-          }
-          return false; // remove from screen
+          letter.caught = true;
+          letter.animate = 10;
+          caughtLetters += letter.char;
+          caughtDisplay.textContent = caughtLetters;
         }
-        return letter.y < canvas.height + 20;
-      });
+      }
 
       if (caughtLetters.length === targetWord.length) {
-        clearInterval(fallInterval);
+        falling = false;
         setTimeout(() => {
           alert(`🎉 Good job, ${targetWord}! ❤️`);
           nextLevel();
@@ -155,41 +157,45 @@
       }
     }
 
+    function nextLevel() {
+      caughtLetters = "";
+      caughtDisplay.textContent = "";
+      letters = [];
+      if (allLevels.length === 0) {
+        alert("🎉 You finished all levels! 🎉");
+        window.location.reload();
+        return;
+      }
+      targetWord = allLevels.shift().toUpperCase();
+      falling = true;
+    }
+
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBasket();
       drawLetters();
-      detectCatch();
-    }
+      checkCatch();
 
-    function nextLevel() {
-      caughtLetters = '';
-      caughtDisplay.innerText = '';
-      letters = [];
-      if (!levelWords.length) {
-        alert("You've finished all levels!");
-        window.location.reload();
-      } else {
-        targetWord = levelWords.shift().toUpperCase();
-        spawnLetters();
-        fallInterval = setInterval(gameLoop, 30);
+      letters = letters.filter(l => l.y < canvas.height + 40 && !l.caught);
+
+      if (falling && letters.length < 10) {
+        letters.push(...generateLetters());
       }
+
+      requestAnimationFrame(gameLoop);
     }
 
-    let levelWords = [];
-
-    startButton.onclick = () => {
-      const name = nameInput.value.trim();
-      if (!name) return alert("Enter a name to play.");
-      targetWord = name.toUpperCase();
-      levelWords = ["cat", "dog", "sun", "hat", "car", "bee", "red", "box", "cup", "pen", "bat", "map"].map(w => w.toUpperCase());
-      startScreen.style.display = 'none';
-      gameStarted = true;
-      spawnLetters();
-      fallInterval = setInterval(gameLoop, 30);
+    document.getElementById("startButton").onclick = () => {
+      const inputName = document.getElementById("nameInput").value.trim();
+      if (!inputName) return alert("Please enter your name to start!");
+      targetWord = inputName.toUpperCase();
+      allLevels = ["dog", "cat", "sun", "hat", "car", "bee", "bat", "cup", "box", "map", "pen", "red"];
+      allLevels = allLevels.map(w => w.toUpperCase());
+      document.getElementById("startScreen").style.display = "none";
+      gameLoop();
     };
 
-    window.addEventListener('touchmove', e => {
+    window.addEventListener("touchmove", (e) => {
       const touch = e.touches[0];
       basket.x = touch.clientX - basket.width / 2;
     });
