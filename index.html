@@ -10,8 +10,8 @@
       padding: 0;
       height: 100%;
       overflow: hidden;
-      background: #e0f7fa;
-      font-family: sans-serif;
+      background: #f0f8ff;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
     }
 
     #gameContainer {
@@ -30,16 +30,19 @@
       height: 60px;
       background-color: pink;
       border-radius: 0 0 60px 60px;
-      border: 4px solid #cc6699;
+      border: 5px solid #cc6699;
+      z-index: 5;
     }
 
     .letter {
       position: absolute;
-      font-size: 2.5rem;
+      font-size: 3rem;
       font-weight: bold;
+      color: #3498db;
       user-select: none;
       pointer-events: none;
-      transform: rotate(0deg);
+      text-shadow: 1px 1px 2px white;
+      font-family: 'Comic Sans MS', cursive;
     }
 
     #targetWord {
@@ -49,7 +52,7 @@
       text-align: center;
       font-size: 2rem;
       font-weight: bold;
-      color: #333;
+      color: #222;
     }
 
     #caughtLetters {
@@ -57,8 +60,19 @@
       bottom: 100px;
       width: 100%;
       text-align: center;
-      font-size: 1.5rem;
+      font-size: 1.8rem;
       font-weight: bold;
+      color: #2ecc71;
+    }
+
+    .pop {
+      animation: pop 0.3s ease-out;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.4); }
+      100% { transform: scale(1); }
     }
 
     #message {
@@ -72,14 +86,16 @@
 
     #instructions {
       position: absolute;
-      top: 20%;
-      width: 100%;
+      top: 25%;
+      width: 90%;
+      left: 5%;
       text-align: center;
       font-size: 1.5rem;
-      color: #444;
+      color: #333;
       background-color: #ffffffcc;
       padding: 20px;
       border-radius: 10px;
+      z-index: 10;
     }
 
     #startButton {
@@ -101,8 +117,10 @@
   <div id="caughtLetters"></div>
   <div id="message"></div>
   <div id="instructions">
+    What’s your name?<br>
+    <input type="text" id="nameInput" placeholder="Type name here" /><br><br>
     Swipe left or right to move the basket.<br>
-    Catch the letters of the word in order!
+    Catch the letters of your name in order!
     <br><br>
     <button id="startButton">Start</button>
   </div>
@@ -110,33 +128,34 @@
 </div>
 
 <script>
-const words = ["dog", "cat", "sun", "book", "cake"];
-let playerName = "Maryam";
+let playerName = "";
 let currentWord = "";
-let currentLevel = 0;
-let caughtLetters = "";
 let currentIndex = 0;
+let caughtLetters = "";
 let dropping = true;
 let letterInterval;
-let basket = document.getElementById("basket");
-let container = document.getElementById("gameContainer");
-let caughtDisplay = document.getElementById("caughtLetters");
-let targetDisplay = document.getElementById("targetWord");
-let message = document.getElementById("message");
-let instructions = document.getElementById("instructions");
-let startButton = document.getElementById("startButton");
+
+const container = document.getElementById("gameContainer");
+const basket = document.getElementById("basket");
+const caughtDisplay = document.getElementById("caughtLetters");
+const targetDisplay = document.getElementById("targetWord");
+const message = document.getElementById("message");
+const instructions = document.getElementById("instructions");
+const startButton = document.getElementById("startButton");
+const nameInput = document.getElementById("nameInput");
 
 startButton.addEventListener("click", () => {
+  playerName = nameInput.value.trim().toUpperCase() || "MARYAM";
+  currentWord = playerName;
   instructions.style.display = "none";
   startLevel();
 });
 
 function startLevel() {
-  currentWord = words[currentLevel];
   currentIndex = 0;
   caughtLetters = "";
+  targetDisplay.textContent = "CATCH: " + currentWord;
   caughtDisplay.textContent = "";
-  targetDisplay.textContent = "Catch: " + currentWord.toUpperCase();
   message.textContent = "";
   dropping = true;
   dropLettersRepeatedly();
@@ -145,7 +164,7 @@ function startLevel() {
 function dropLettersRepeatedly() {
   let count = 0;
   letterInterval = setInterval(() => {
-    if (count >= 20 || !dropping) {
+    if (count >= 25 || !dropping) {
       clearInterval(letterInterval);
       return;
     }
@@ -165,10 +184,8 @@ function dropLetter() {
   letter.textContent = char;
 
   const x = Math.random() * (window.innerWidth - 40);
-  let rotation = Math.random() * 360;
   letter.style.left = `${x}px`;
   letter.style.top = `-50px`;
-  letter.style.transform = `rotate(${rotation}deg)`;
 
   container.appendChild(letter);
 
@@ -183,7 +200,7 @@ function dropLetter() {
     }
 
     y += speed;
-    angle += 2;
+    angle += 1;
     letter.style.top = `${y}px`;
     letter.style.transform = `rotate(${angle}deg)`;
 
@@ -209,6 +226,8 @@ function handleCaughtLetter(char) {
   if (char === currentWord[currentIndex]) {
     caughtLetters += char;
     caughtDisplay.textContent = caughtLetters;
+    caughtDisplay.classList.add("pop");
+    setTimeout(() => caughtDisplay.classList.remove("pop"), 300);
     currentIndex++;
 
     if (currentIndex === currentWord.length) {
@@ -216,34 +235,23 @@ function handleCaughtLetter(char) {
       clearInterval(letterInterval);
       setTimeout(() => {
         message.textContent = `🌟 Good job, ${playerName}!`;
-        setTimeout(() => {
-          message.textContent = "";
-          currentLevel++;
-          if (currentLevel < words.length) {
-            startLevel();
-          } else {
-            message.textContent = `🎉 You finished all levels, ${playerName}!`;
-          }
-        }, 2000);
       }, 500);
     }
   }
 }
 
-// Mobile swipe controls
+// Swipe movement
 let startX = null;
 container.addEventListener("touchstart", e => {
   startX = e.touches[0].clientX;
 });
-
 container.addEventListener("touchmove", e => {
   if (startX === null) return;
-  const currentX = e.touches[0].clientX;
-  const dx = currentX - startX;
-  const basketLeft = basket.offsetLeft + dx;
+  const dx = e.touches[0].clientX - startX;
+  const left = basket.offsetLeft + dx;
   const maxLeft = window.innerWidth - basket.offsetWidth;
-  basket.style.left = Math.max(0, Math.min(basketLeft, maxLeft)) + "px";
-  startX = currentX;
+  basket.style.left = Math.max(0, Math.min(left, maxLeft)) + "px";
+  startX = e.touches[0].clientX;
 });
 </script>
 
