@@ -2,42 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Letter Catcher</title>
+  <title>Catch the Letters!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
+    body, html {
       margin: 0;
-      background: #f0f0f0;
+      padding: 0;
       overflow: hidden;
       font-family: sans-serif;
+      background: #f0f8ff;
     }
 
     #game {
-      position: relative;
       width: 100vw;
       height: 100vh;
-      background: linear-gradient(to bottom, #e0f7fa, #80deea);
-      overflow: hidden;
+      position: relative;
+      background: linear-gradient(to bottom, #cceeff, #e6f7ff);
     }
 
     .letter {
       position: absolute;
       font-size: 64px;
       font-weight: bold;
-      color: #333;
+      color: hsl(calc(360 * var(--hue)), 80%, 60%);
       user-select: none;
       pointer-events: none;
     }
 
     #basket {
       position: absolute;
-      bottom: 20px;
+      bottom: 10px;
       left: 50%;
-      width: 120px;
-      height: 80px;
-      background: url('basket.png') no-repeat center/contain;
       transform: translateX(-50%);
-      touch-action: none;
+      width: 120px;
+      height: 60px;
+      background: #c97f2f;
+      border-radius: 30px 30px 10px 10px;
+      box-shadow: inset 0 0 0 5px #a65b1a;
     }
 
     #message {
@@ -45,121 +46,208 @@
       top: 40%;
       width: 100%;
       text-align: center;
-      font-size: 24px;
-      color: #4caf50;
+      font-size: 28px;
+      color: green;
       display: none;
+    }
+
+    #timer, #score {
+      position: absolute;
+      top: 10px;
+      font-size: 20px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+
+    #timer { right: 10px; }
+    #score { left: 10px; }
+
+    #word-select {
+      position: absolute;
+      top: 40%;
+      width: 100%;
+      text-align: center;
+      font-size: 24px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background: #4caf50;
+      color: white;
     }
   </style>
 </head>
 <body>
   <div id="game">
     <div id="basket"></div>
-    <div id="message">Good job!</div>
+    <div id="message">🎉 Good job! 🎉</div>
+    <div id="timer">60</div>
+    <div id="score">Score: 0</div>
+    <div id="word-select" style="display:none;"></div>
   </div>
 
-  <audio id="popSound" src="pop.mp3" preload="auto"></audio>
-
   <script>
-    const basket = document.getElementById('basket');
-    const game = document.getElementById('game');
-    const message = document.getElementById('message');
-    const popSound = document.getElementById('popSound');
+    const basket = document.getElementById("basket");
+    const game = document.getElementById("game");
+    const message = document.getElementById("message");
+    const timerEl = document.getElementById("timer");
+    const scoreEl = document.getElementById("score");
+    const wordSelect = document.getElementById("word-select");
 
-    let targetWord = 'HELLO';
-    let currentIndex = 0;
-    let letters = [];
     let gameWidth = window.innerWidth;
     let gameHeight = window.innerHeight;
 
+    let letters = [];
+    let currentWord = "";
+    let currentIndex = 0;
+    let score = 0;
+    let timer = 60;
+    let level = 1;
+
+    function askName() {
+      const name = prompt("What's your name?");
+      if (name) {
+        currentWord = name.toUpperCase();
+        startLevel();
+      }
+    }
+
+    function showWords() {
+      const words = ["DOG", "CAT", "SUN", "CAR", "HAT", "FAN"];
+      wordSelect.innerHTML = "Pick a word:<br>";
+      words.forEach(word => {
+        const btn = document.createElement("button");
+        btn.textContent = word;
+        btn.onclick = () => {
+          currentWord = word;
+          wordSelect.style.display = "none";
+          startLevel();
+        };
+        wordSelect.appendChild(btn);
+      });
+      wordSelect.style.display = "block";
+    }
+
+    function startLevel() {
+      currentIndex = 0;
+      letters.forEach(l => l.remove());
+      letters = [];
+      message.style.display = "none";
+      spawnLetters();
+      timer = 60;
+      timerEl.textContent = timer;
+      startTimer();
+    }
+
+    function spawnLetters() {
+      let i = 0;
+      const drop = setInterval(() => {
+        if (i >= currentWord.length) {
+          clearInterval(drop);
+          return;
+        }
+        createLetter(currentWord[i]);
+        i++;
+      }, 1000);
+    }
+
     function createLetter(char) {
-      const letter = document.createElement('div');
-      letter.classList.add('letter');
+      const letter = document.createElement("div");
+      letter.className = "letter";
       letter.textContent = char;
-      letter.style.left = Math.random() * (gameWidth - 64) + 'px';
-      letter.style.top = '-64px';
+      letter.style.left = Math.random() * (gameWidth - 64) + "px";
+      letter.style.top = "-64px";
+      letter.style.setProperty('--hue', Math.random());
+
       game.appendChild(letter);
       letters.push(letter);
 
-      let topPosition = -64;
-      const fallInterval = setInterval(() => {
-        topPosition += 1.5; // Slower fall
-        letter.style.top = topPosition + 'px';
+      let top = -64;
+      const fall = setInterval(() => {
+        top += 2;
+        letter.style.top = top + "px";
 
-        const letterRect = letter.getBoundingClientRect();
         const basketRect = basket.getBoundingClientRect();
+        const letterRect = letter.getBoundingClientRect();
 
         if (
           letterRect.bottom >= basketRect.top &&
           letterRect.left < basketRect.right &&
           letterRect.right > basketRect.left
         ) {
-          if (char === targetWord[currentIndex]) {
-            popSound.currentTime = 0;
-            popSound.play();
-            letter.remove();
+          if (char === currentWord[currentIndex]) {
+            letter.style.transform = "scale(1.2)";
+            setTimeout(() => letter.remove(), 200);
             letters = letters.filter(l => l !== letter);
             currentIndex++;
-            clearInterval(fallInterval);
-            if (currentIndex === targetWord.length) {
-              showMessage();
+            clearInterval(fall);
+            if (currentIndex === currentWord.length) {
+              score += 10;
+              scoreEl.textContent = "Score: " + score;
+              level++;
+              showSuccess();
             }
           }
         }
 
-        if (topPosition > gameHeight) {
+        if (top > gameHeight) {
           letter.remove();
           letters = letters.filter(l => l !== letter);
-          clearInterval(fallInterval);
+          clearInterval(fall);
         }
       }, 16);
     }
 
-    function showMessage() {
-      message.style.display = 'block';
+    function showSuccess() {
+      message.style.display = "block";
       setTimeout(() => {
-        message.style.display = 'none';
-        currentIndex = 0;
-        startGame();
+        message.style.display = "none";
+        if (level === 2) {
+          showWords();
+        } else {
+          startLevel();
+        }
       }, 2000);
     }
 
-    function startGame() {
-      letters.forEach(letter => letter.remove());
-      letters = [];
-      currentIndex = 0;
-      let index = 0;
-      const letterInterval = setInterval(() => {
-        if (index < targetWord.length) {
-          createLetter(targetWord[index]);
-          index++;
-        } else {
-          clearInterval(letterInterval);
+    function startTimer() {
+      const tick = setInterval(() => {
+        timer--;
+        timerEl.textContent = timer;
+        if (timer <= 0) {
+          clearInterval(tick);
+          alert("Time's up!");
+          location.reload(); // restart
         }
       }, 1000);
     }
 
-    let isDragging = false;
-    let startX = 0;
-
-    basket.addEventListener('touchstart', e => {
-      isDragging = true;
+    // Swipe basket
+    let startX = null;
+    basket.addEventListener("touchstart", e => {
       startX = e.touches[0].clientX;
     });
 
-    basket.addEventListener('touchmove', e => {
-      if (!isDragging) return;
-      const deltaX = e.touches[0].clientX - startX;
-      let newLeft = basket.offsetLeft + deltaX;
-      newLeft = Math.max(0, Math.min(newLeft, gameWidth - basket.offsetWidth));
-      basket.style.left = newLeft + 'px';
-      startX = e.touches[0].clientX;
+    basket.addEventListener("touchmove", e => {
+      if (startX === null) return;
+      const moveX = e.touches[0].clientX;
+      const delta = moveX - startX;
+      let left = basket.offsetLeft + delta;
+      left = Math.max(0, Math.min(gameWidth - basket.offsetWidth, left));
+      basket.style.left = left + "px";
+      startX = moveX;
     });
 
-    basket.addEventListener('touchend', () => {
-      isDragging = false;
+    basket.addEventListener("touchend", () => {
+      startX = null;
     });
 
-    startGame();
+    askName();
   </script>
 </body>
 </html>
