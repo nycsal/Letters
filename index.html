@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Catch the Letters Game</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      height: 100%;
       overflow: hidden;
       font-family: sans-serif;
       background: #f0f8ff;
     }
+
     #gameContainer {
       position: relative;
       width: 100vw;
@@ -18,6 +21,7 @@
       overflow: hidden;
       background-color: #e6f7ff;
     }
+
     #basket {
       position: absolute;
       bottom: 20px;
@@ -26,9 +30,15 @@
       width: 100px;
       height: 60px;
       background-color: pink;
-      border-radius: 30px 30px 0 0;
-      border: 2px solid #cc6699;
+      border-top-left-radius: 50px;
+      border-top-right-radius: 50px;
+      border: 4px solid #cc6699;
+      border-bottom: none;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
     }
+
     .falling-letter {
       position: absolute;
       font-size: 2.5rem;
@@ -37,14 +47,17 @@
       user-select: none;
       pointer-events: none;
     }
+
     @keyframes fall {
-      from { top: -50px; }
+      from { top: -60px; }
       to { top: 100vh; }
     }
+
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
+
     #message {
       position: absolute;
       top: 30%;
@@ -53,6 +66,7 @@
       font-size: 2rem;
       color: #ff3399;
     }
+
     #caughtLetters {
       position: absolute;
       bottom: 90px;
@@ -61,6 +75,17 @@
       font-size: 1.5rem;
       font-weight: bold;
     }
+
+    #targetWord {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #444;
+    }
+
     #instructions {
       position: absolute;
       top: 20%;
@@ -72,6 +97,7 @@
       padding: 20px;
       border-radius: 10px;
     }
+
     #startButton {
       margin-top: 20px;
       padding: 10px 20px;
@@ -87,6 +113,7 @@
 <body>
 
 <div id="gameContainer">
+  <div id="targetWord"></div>
   <div id="instructions">
     Swipe left or right to move the basket. Catch the correct letters in the correct order!
     <br/>
@@ -99,7 +126,7 @@
 
 <script>
 const words = ["dog", "cat", "sun", "book", "cake", "fish", "star", "jump", "frog", "milk", "moon", "tree"];
-let playerName = "Maryam"; // Can prompt if desired
+let playerName = "Maryam";
 let currentLevel = 0;
 let currentWord = "";
 let caughtLetters = "";
@@ -112,6 +139,7 @@ const basket = document.getElementById("basket");
 const container = document.getElementById("gameContainer");
 const message = document.getElementById("message");
 const caughtDisplay = document.getElementById("caughtLetters");
+const targetDisplay = document.getElementById("targetWord");
 const instructions = document.getElementById("instructions");
 const startButton = document.getElementById("startButton");
 
@@ -140,7 +168,9 @@ function nextLevel() {
   }
 
   currentWord = words[currentLevel];
+  targetDisplay.textContent = `Catch: ${currentWord.toUpperCase()}`;
   currentIndex = 0;
+  gameRunning = true;
   dropLettersRepeatedly();
 }
 
@@ -171,9 +201,10 @@ function dropLetter() {
     x = Math.floor(Math.random() * (window.innerWidth - 60));
   } while (usedPositions.some(pos => Math.abs(pos - x) < 80));
   usedPositions.push(x);
-  if (usedPositions.length > 10) usedPositions.shift(); // Prevent overflow
+  if (usedPositions.length > 10) usedPositions.shift();
 
   letter.style.left = `${x}px`;
+  letter.style.top = `-60px`;
   container.appendChild(letter);
 
   let fallTimer = setInterval(() => {
@@ -189,7 +220,7 @@ function dropLetter() {
       clearInterval(fallTimer);
       handleCaughtLetter(char);
     } else if (letterRect.top > window.innerHeight) {
-      container.removeChild(letter);
+      if (container.contains(letter)) container.removeChild(letter);
       clearInterval(fallTimer);
     }
   }, 50);
@@ -214,7 +245,6 @@ function showLevelComplete() {
   setTimeout(() => {
     message.textContent = "";
     currentLevel++;
-    gameRunning = true;
     nextLevel();
   }, 2000);
 }
