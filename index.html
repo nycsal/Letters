@@ -1,266 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Catch the Letters!</title>
+  <meta charset="UTF-8">
+  <title>Balloon Pop Game</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
       overflow: hidden;
-      touch-action: none;
-      font-family: 'Comic Sans MS', cursive, sans-serif;
-      background-color: #f0f8ff;
+      font-family: 'Comic Sans MS', cursive;
+      background: linear-gradient(to top, #cceeff, #ffffff);
+      text-align: center;
     }
 
-    #gameContainer {
+    #startScreen, #levelComplete, #gameOver {
+      position: absolute;
+      top: 30%;
+      width: 100%;
+      display: none;
+    }
+
+    #gameArea {
       position: relative;
-      width: 100vw;
       height: 100vh;
       overflow: hidden;
     }
 
-    #basket {
+    .balloon {
       position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100px;
-      height: 60px;
-      background-color: pink;
-      border-radius: 0 0 60px 60px;
-      border: 5px solid #cc6699;
-      z-index: 10;
+      width: 60px;
+      height: 80px;
+      background: red;
+      border-radius: 50% 50% 45% 45%;
+      cursor: pointer;
+      animation: floatUp linear;
     }
 
-    .letter {
-      position: absolute;
-      font-size: 3rem;
-      font-weight: bold;
-      color: #3498db;
-      user-select: none;
-      pointer-events: none;
-      text-shadow: 2px 2px 2px white;
+    @keyframes floatUp {
+      0% { bottom: -100px; }
+      100% { bottom: 110%; }
     }
 
-    #targetWord {
+    #playerNameDisplay {
       position: absolute;
       top: 10px;
-      width: 100%;
-      text-align: center;
-      font-size: 2rem;
-      font-weight: bold;
-      color: #222;
-    }
-
-    #caughtLetters {
-      position: absolute;
-      bottom: 100px;
-      width: 100%;
-      text-align: center;
-      font-size: 2rem;
-      font-weight: bold;
-      color: #2ecc71;
-    }
-
-    .pop {
-      animation: pop 0.3s ease-out;
-    }
-
-    @keyframes pop {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.5); }
-      100% { transform: scale(1); }
-    }
-
-    #message {
-      position: absolute;
-      top: 40%;
-      width: 100%;
-      text-align: center;
-      font-size: 2rem;
-      color: #ff4081;
-    }
-
-    #instructions {
-      position: absolute;
-      top: 20%;
-      width: 90%;
-      left: 5%;
-      text-align: center;
-      font-size: 1.6rem;
-      color: #333;
-      background-color: #ffffffee;
-      padding: 25px;
+      left: 10px;
+      font-size: 18px;
+      background: white;
+      padding: 5px 10px;
       border-radius: 10px;
-      z-index: 20;
     }
 
-    #startButton {
+    .message {
+      font-size: 32px;
+      color: #333;
+    }
+
+    button {
+      font-size: 20px;
+      padding: 10px 20px;
       margin-top: 20px;
-      padding: 12px 24px;
-      font-size: 1.2rem;
-      background-color: #007acc;
-      color: white;
       border: none;
-      border-radius: 8px;
+      background: #ff66cc;
+      color: white;
+      border-radius: 10px;
       cursor: pointer;
     }
 
-    input[type="text"] {
-      font-size: 1.2rem;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #999;
-      width: 80%;
+    input {
+      font-size: 20px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 2px solid #ccc;
     }
   </style>
 </head>
 <body>
-
-<div id="gameContainer">
-  <div id="targetWord"></div>
-  <div id="caughtLetters"></div>
-  <div id="message"></div>
-  <div id="instructions">
-    👋 Hi! What’s your name?<br><br>
-    <input type="text" id="nameInput" placeholder="Type your name here" /><br><br>
-    Swipe left or right to move the basket.<br>
-    Catch the letters of your name in order!<br><br>
-    <button id="startButton">Start!</button>
+  <div id="startScreen">
+    <h1>🎈 Welcome to Balloon Pop! 🎈</h1>
+    <p>What's your name?</p>
+    <input type="text" id="playerNameInput" />
+    <br />
+    <button onclick="startGame()">Start Game</button>
   </div>
-  <div id="basket"></div>
-</div>
 
-<script>
-let playerName = "";
-let currentWord = "";
-let currentIndex = 0;
-let caughtLetters = "";
-let dropping = true;
-let letterInterval;
+  <div id="gameArea"></div>
+  <div id="playerNameDisplay"></div>
 
-const container = document.getElementById("gameContainer");
-const basket = document.getElementById("basket");
-const caughtDisplay = document.getElementById("caughtLetters");
-const targetDisplay = document.getElementById("targetWord");
-const message = document.getElementById("message");
-const instructions = document.getElementById("instructions");
-const startButton = document.getElementById("startButton");
-const nameInput = document.getElementById("nameInput");
+  <div id="levelComplete" class="message"></div>
+  <div id="gameOver" class="message"></div>
 
-startButton.addEventListener("click", () => {
-  playerName = nameInput.value.trim().toUpperCase() || "MARYAM";
-  currentWord = playerName;
-  instructions.style.display = "none";
-  startLevel();
-});
+  <script>
+    const colors = ['red', 'blue', 'green', 'orange', 'purple', 'pink', 'yellow'];
+    const gameArea = document.getElementById("gameArea");
+    const playerNameDisplay = document.getElementById("playerNameDisplay");
+    const levelComplete = document.getElementById("levelComplete");
+    const gameOver = document.getElementById("gameOver");
+    const startScreen = document.getElementById("startScreen");
 
-function startLevel() {
-  currentIndex = 0;
-  caughtLetters = "";
-  targetDisplay.textContent = "CATCH: " + currentWord;
-  caughtDisplay.textContent = "";
-  message.textContent = "";
-  dropping = true;
-  dropLettersRepeatedly();
-}
+    let playerName = "";
+    let score = 0;
+    let level = 1;
+    let balloonsToPop = 10;
+    let poppedThisLevel = 0;
+    let gameInterval;
 
-function dropLettersRepeatedly() {
-  let count = 0;
-  letterInterval = setInterval(() => {
-    if (count >= 25 || !dropping) {
-      clearInterval(letterInterval);
-      return;
-    }
-    dropLetter();
-    count++;
-  }, 500);
-}
-
-function dropLetter() {
-  const letter = document.createElement("div");
-  letter.classList.add("letter");
-
-  const isCorrect = Math.random() < 0.5;
-  const char = isCorrect
-    ? currentWord[Math.floor(Math.random() * currentWord.length)]
-    : String.fromCharCode(65 + Math.floor(Math.random() * 26));
-  letter.textContent = char;
-
-  const x = Math.random() * (window.innerWidth - 40);
-  letter.style.left = `${x}px`;
-  letter.style.top = `-50px`;
-
-  container.appendChild(letter);
-
-  let y = -50;
-  let angle = 0;
-  const speed = 2;
-
-  const fall = setInterval(() => {
-    if (!container.contains(letter)) {
-      clearInterval(fall);
-      return;
+    function startGame() {
+      playerName = document.getElementById("playerNameInput").value || "Player";
+      playerNameDisplay.textContent = "🎉 Good luck, " + playerName + "!";
+      startScreen.style.display = "none";
+      nextLevel();
     }
 
-    y += speed;
-    angle += 1;
-    letter.style.top = `${y}px`;
-    letter.style.transform = `rotate(${angle}deg)`;
-
-    const basketRect = basket.getBoundingClientRect();
-    const letterRect = letter.getBoundingClientRect();
-
-    if (
-      letterRect.bottom >= basketRect.top &&
-      letterRect.left < basketRect.right &&
-      letterRect.right > basketRect.left
-    ) {
-      container.removeChild(letter);
-      clearInterval(fall);
-      handleCaughtLetter(char);
-    } else if (y > window.innerHeight) {
-      container.removeChild(letter);
-      clearInterval(fall);
+    function nextLevel() {
+      levelComplete.style.display = "none";
+      gameOver.style.display = "none";
+      poppedThisLevel = 0;
+      gameArea.innerHTML = "";
+      let intervalSpeed = Math.max(600 - level * 60, 200);
+      gameInterval = setInterval(spawnBalloon, intervalSpeed);
     }
-  }, 16);
-}
 
-function handleCaughtLetter(char) {
-  if (char === currentWord[currentIndex]) {
-    caughtLetters += char;
-    caughtDisplay.textContent = caughtLetters;
-    caughtDisplay.classList.add("pop");
-    setTimeout(() => caughtDisplay.classList.remove("pop"), 300);
-    currentIndex++;
+    function spawnBalloon() {
+      if (poppedThisLevel >= balloonsToPop) {
+        clearInterval(gameInterval);
+        if (level >= 7) {
+          showGameOver();
+        } else {
+          level++;
+          showLevelComplete();
+        }
+        return;
+      }
 
-    if (currentIndex === currentWord.length) {
-      dropping = false;
-      clearInterval(letterInterval);
+      const balloon = document.createElement("div");
+      balloon.classList.add("balloon");
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      balloon.style.backgroundColor = color;
+      balloon.style.left = Math.random() * (window.innerWidth - 60) + "px";
+      balloon.style.animationDuration = (5 - level * 0.3) + "s";
+
+      balloon.onclick = () => {
+        balloon.remove();
+        poppedThisLevel++;
+      };
+
+      gameArea.appendChild(balloon);
+
       setTimeout(() => {
-        message.textContent = `🌟 Good job, ${playerName}!`;
-      }, 500);
+        if (balloon.parentElement) balloon.remove();
+      }, 6000);
     }
-  }
-}
 
-// Swipe to move the basket
-let startX = null;
-container.addEventListener("touchstart", e => {
-  startX = e.touches[0].clientX;
-});
-container.addEventListener("touchmove", e => {
-  if (startX === null) return;
-  const dx = e.touches[0].clientX - startX;
-  const left = basket.offsetLeft + dx;
-  const maxLeft = window.innerWidth - basket.offsetWidth;
-  basket.style.left = Math.max(0, Math.min(left, maxLeft)) + "px";
-  startX = e.touches[0].clientX;
-});
-</script>
+    function showLevelComplete() {
+      levelComplete.innerHTML = `🎉 Good job, ${playerName}! 🎉<br>Level ${level - 1} complete!`;
+      levelComplete.style.display = "block";
+      setTimeout(nextLevel, 3000);
+    }
 
+    function showGameOver() {
+      gameOver.innerHTML = `🏆 Amazing work, ${playerName}! You finished all 7 levels! 🎈`;
+      gameOver.style.display = "block";
+    }
+
+    // Start screen first
+    startScreen.style.display = "block";
+  </script>
 </body>
 </html>
