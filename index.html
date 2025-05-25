@@ -10,8 +10,8 @@
       padding: 0;
       overflow: hidden;
       touch-action: none;
-      font-family: sans-serif;
       background: #f0f8ff;
+      font-family: sans-serif;
     }
 
     #game {
@@ -25,10 +25,31 @@
       position: absolute;
       font-size: 64px;
       font-weight: bold;
-      color: hsl(calc(360 * var(--hue)), 80%, 60%);
+      color: gray;
       user-select: none;
       pointer-events: none;
-      transition: transform 0.3s ease;
+      animation: sway 3s infinite ease-in-out;
+    }
+
+    .correct {
+      color: hsl(calc(360 * var(--hue)), 80%, 55%);
+    }
+
+    .flower {
+      position: absolute;
+      font-size: 32px;
+      animation: flowerFall 5s linear forwards;
+    }
+
+    @keyframes sway {
+      0% { transform: translateX(0); }
+      50% { transform: translateX(20px); }
+      100% { transform: translateX(-20px); }
+    }
+
+    @keyframes flowerFall {
+      0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
     }
 
     #basket {
@@ -41,6 +62,17 @@
       background: #c97f2f;
       border-radius: 30px 30px 10px 10px;
       box-shadow: inset 0 0 0 5px #a65b1a;
+    }
+
+    #progress {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 24px;
+      background: rgba(255,255,255,0.7);
+      padding: 6px 12px;
+      border-radius: 8px;
     }
 
     #message {
@@ -72,7 +104,7 @@
 
     @keyframes flash {
       0% { transform: scale(1); filter: brightness(1); }
-      50% { transform: scale(1.4); filter: brightness(2); }
+      50% { transform: scale(1.5); filter: brightness(2); }
       100% { transform: scale(1); filter: brightness(1); }
     }
   </style>
@@ -80,7 +112,8 @@
 <body>
   <div id="game">
     <div id="basket"></div>
-    <div id="message">🎉 Good job! 🎉</div>
+    <div id="progress"></div>
+    <div id="message"></div>
     <div id="timer">60</div>
     <div id="score">Score: 0</div>
   </div>
@@ -91,19 +124,16 @@
     const message = document.getElementById("message");
     const timerEl = document.getElementById("timer");
     const scoreEl = document.getElementById("score");
+    const progressEl = document.getElementById("progress");
 
     const kidWords = ["DOG", "CAT", "SUN", "CAR", "HAT", "FAN", "BUS", "MAP", "PEN", "FOX", "BOX", "BAT"];
-    let usedWords = [];
-    let currentWord = "";
-    let currentIndex = 0;
-    let score = 0;
-    let level = 1;
-    let timer = 60;
-    let intervalId;
-    let gameWidth = window.innerWidth;
-    let gameHeight = window.innerHeight;
+    let usedWords = [], letters = [];
+    let currentWord = "", currentIndex = 0, score = 0, level = 1;
+    let timer = 60, intervalId;
+    let playerName = "";
 
-    let letters = [];
+    const gameWidth = window.innerWidth;
+    const gameHeight = window.innerHeight;
 
     function getNextWord() {
       const available = kidWords.filter(word => !usedWords.includes(word));
@@ -114,8 +144,9 @@
     }
 
     function startGame() {
-      currentWord = prompt("What's your name?").toUpperCase().slice(0, 8);
-      usedWords.push(currentWord);
+      playerName = prompt("What's your name?").toUpperCase().slice(0, 8);
+      usedWords.push(playerName);
+      currentWord = playerName;
       startLevel();
     }
 
@@ -123,13 +154,15 @@
       letters.forEach(l => l.remove());
       letters = [];
       currentIndex = 0;
+      progressEl.textContent = "";
       message.style.display = "none";
       timer = 60;
       timerEl.textContent = timer;
       scoreEl.textContent = `Score: ${score}`;
       clearInterval(intervalId);
       startTimer();
-      spawnFallingLetters(currentWord);
+      dropFlowers();
+      dropLetters(currentWord);
     }
 
     function startTimer() {
@@ -144,40 +177,47 @@
       }, 1000);
     }
 
-    function spawnFallingLetters(word) {
-      let drop = setInterval(() => {
-        if (timer <= 0) return clearInterval(drop);
+    function dropLetters(word) {
+      const fullSet = [];
+      const wordLetters = word.split('');
+      for (let i = 0; i < wordLetters.length; i++) {
+        fullSet.push({ char: wordLetters[i], isCorrect: true });
+      }
+      const distractors = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      while (fullSet.length < 20) {
+        const rand = distractors[Math.floor(Math.random() * distractors.length)];
+        fullSet.push({ char: rand, isCorrect: false });
+      }
 
-        // Drop correct letter (next in word)
-        if (currentIndex < word.length) {
-          createLetter(word[currentIndex], true);
-        }
+      fullSet.sort(() => Math.random() - 0.5);
 
-        // Drop distractor letters
-        const distractors = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        for (let i = 0; i < 2; i++) {
-          const randChar = distractors[Math.floor(Math.random() * distractors.length)];
-          createLetter(randChar, false);
-        }
-
-      }, 1000);
+      fullSet.forEach((item, i) => {
+        setTimeout(() => createLetter(item.char, item.isCorrect), i * 300);
+      });
     }
 
     function createLetter(char, isCorrect) {
       const letter = document.createElement("div");
       letter.className = "letter";
+      if (isCorrect) {
+        letter.classList.add("correct");
+        letter.style.setProperty('--hue', Math.random());
+      }
       letter.textContent = char;
       letter.style.left = Math.random() * (gameWidth - 64) + "px";
       letter.style.top = "-64px";
-      letter.style.setProperty('--hue', Math.random());
-
       game.appendChild(letter);
       letters.push(letter);
 
       let top = -64;
+      let sway = Math.random() < 0.5 ? -1 : 1;
+      let x = parseFloat(letter.style.left);
+
       const fall = setInterval(() => {
-        top += 1.2;
+        top += 2.2;
+        x += sway * 0.5;
         letter.style.top = top + "px";
+        letter.style.left = x + "px";
 
         const basketRect = basket.getBoundingClientRect();
         const letterRect = letter.getBoundingClientRect();
@@ -189,6 +229,7 @@
         ) {
           if (isCorrect && char === currentWord[currentIndex]) {
             letter.classList.add("flash");
+            progressEl.textContent += char;
             setTimeout(() => letter.remove(), 200);
             letters = letters.filter(l => l !== letter);
             currentIndex++;
@@ -199,7 +240,6 @@
               showMessage();
             }
           } else {
-            // Incorrect catch
             letter.remove();
             letters = letters.filter(l => l !== letter);
             clearInterval(fall);
@@ -214,26 +254,35 @@
       }, 16);
     }
 
+    function dropFlowers() {
+      setInterval(() => {
+        const flower = document.createElement("div");
+        flower.className = "flower";
+        flower.textContent = "🌸";
+        flower.style.left = Math.random() * gameWidth + "px";
+        game.appendChild(flower);
+        setTimeout(() => flower.remove(), 5000);
+      }, 1500);
+    }
+
     function showMessage() {
+      message.textContent = `🎉 Good job, ${playerName}! ❤️`;
       message.style.display = "block";
-      message.textContent = "🎉 Good job! 🎉";
       setTimeout(() => {
         message.style.display = "none";
         level++;
-        if (level <= 12) {
-          const next = getNextWord();
-          if (next) {
-            currentWord = next;
-            startLevel();
-          } else {
-            alert("You've completed all 12 levels! 🎉 Final score: " + score);
-            location.reload();
-          }
+        const next = getNextWord();
+        if (next) {
+          currentWord = next;
+          startLevel();
+        } else {
+          alert("🎉 You've completed all levels! Final score: " + score);
+          location.reload();
         }
-      }, 2000);
+      }, 2500);
     }
 
-    // Swipe control for basket
+    // Basket touch movement
     let startX = null;
     basket.addEventListener("touchstart", e => {
       startX = e.touches[0].clientX;
