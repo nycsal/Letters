@@ -11,10 +11,21 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            min-height: 100vh; /* Full viewport height */
             margin: 0;
             background-color: #f0f0f0;
             color: #333;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+            user-select: none; /* Prevent text selection during gameplay */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE/Edge */
+            touch-action: manipulation; /* Prevent double-tap zoom on mobile */
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
         }
         #gameContainer {
             border: 2px solid #333;
@@ -22,33 +33,48 @@
             position: relative;
             background-color: #fff;
             overflow: hidden; /* Prevents bullets from appearing outside */
+            width: 600px; /* Fixed width for desktop */
+            max-width: 95vw; /* Max width for responsiveness on smaller screens */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
         }
         #gameCanvas {
             display: block;
             background-color: #e0e0ff; /* Light blue sky */
+            width: 100%; /* Make canvas fill its container */
+            height: 400px; /* Fixed height, or can be dynamic based on width if needed */
         }
         #uiContainer {
             display: flex;
             justify-content: space-around;
-            width: 600px; /* Should match canvas width */
+            width: 600px; /* Should match gameContainer width for desktop */
+            max-width: 95vw; /* Max width for responsiveness */
             padding: 10px 0;
             background-color: #333;
             color: #fff;
             border-bottom-left-radius: 8px;
             border-bottom-right-radius: 8px;
+            box-sizing: border-box;
         }
         .ui-element {
             text-align: center;
+            flex-grow: 1; /* Allows elements to grow and fill space */
+            padding: 0 5px; /* Add some padding for spacing */
         }
         #currentWordDisplay {
             font-size: 1.2em;
             font-weight: bold;
             color: #ffeb3b; /* Yellow for current word */
             min-height: 25px;
+            white-space: nowrap; /* Prevent word from wrapping */
+            overflow: hidden; /* Hide overflow if it's too long */
+            text-overflow: ellipsis; /* Add ellipsis if hidden */
         }
         #targetWordDisplay {
             font-size: 1.1em;
             color: #80cbc4; /* Teal for target word */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         #scoreboard {
             margin-top: 20px;
@@ -58,6 +84,8 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             text-align: center;
+            width: 300px; /* Fixed width, adjust as needed */
+            max-width: 90vw; /* Responsive max-width */
         }
         #scoreboard h2 {
             margin-top: 0;
@@ -66,6 +94,7 @@
         #highScoresList {
             list-style-type: none;
             padding: 0;
+            margin: 0;
         }
         #highScoresList li {
             padding: 5px 0;
@@ -102,12 +131,37 @@
             text-align: center;
             z-index: 10;
             display: none; /* Hidden by default */
+            white-space: pre-wrap; /* Allows new lines from '\n' to be displayed */
+        }
+
+        /* Media queries for smaller screens */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5em;
+            }
+            #gameContainer, #uiContainer {
+                width: 100%; /* Take full width on small screens */
+                max-width: 100%;
+            }
+            #gameCanvas {
+                height: 300px; /* Slightly shorter on small screens */
+            }
+            .ui-element {
+                font-size: 0.9em;
+                padding: 0 2px;
+            }
+            #currentWordDisplay, #targetWordDisplay {
+                font-size: 1em;
+            }
+            #scoreboard {
+                width: 95%; /* Make scoreboard wider on small screens */
+            }
         }
     </style>
 </head>
 <body>
 
-    <h1>Letter Fall Frenzy Buchstaben-Wahnsinn 🔡💥</h1>
+    <h1>Letter Fall Frenzy 🔡💥</h1>
 
     <div id="gameContainer">
         <canvas id="gameCanvas" width="600" height="400"></canvas>
@@ -196,6 +250,7 @@
         }
 
         function initGame() {
+            // Re-initialize player, bullets, letters
             player = {
                 x: canvas.width / 2 - playerWidth / 2,
                 y: canvas.height - playerHeight - 10,
@@ -209,50 +264,59 @@
             level = 1;
             lives = maxLives;
             currentWord = "";
-            setupLevel();
-            updateUI();
+            
+            setupLevel(); // Sets up currentLevelWords, letterSpeed, etc.
+            updateUI(); // Updates score, level, lives displays
+
+            // Clear any existing game loop
             if (gameInterval) clearInterval(gameInterval);
+            
+            // Start new game loop
             gameInterval = setInterval(gameLoop, 1000 / 60); // 60 frames per second
             gameActive = true;
+
+            // Hide UI elements during active game
             messageDisplay.style.display = 'none';
             startButton.style.display = 'none';
             restartButton.style.display = 'none';
-            canvas.focus(); // Ensure canvas can receive keyboard input
+            
+            // Ensure canvas can receive keyboard input (important for movement/shooting)
+            canvas.focus(); 
         }
 
         function setupLevel() {
             const settings = levelSettings[level - 1];
             if (!settings) {
-                gameOver(true); // Won the game
+                gameOver(true); // Won the game if no more levels
                 return;
             }
-            currentLevelWords = [...settings.words];
+            currentLevelWords = [...settings.words]; // Copy array to avoid modifying original
             letterSpeed = settings.speed;
             letterSpawnRate = settings.spawn;
-            pickNewTargetWord();
+            pickNewTargetWord(); // Selects first target word for the level
             levelDisplay.textContent = level;
         }
 
         function pickNewTargetWord() {
             if (currentLevelWords.length === 0) {
-                levelUp();
+                levelUp(); // All words in this level completed, move to next
                 return;
             }
             const randomIndex = Math.floor(Math.random() * currentLevelWords.length);
-            currentTargetWord = currentLevelWords.splice(randomIndex, 1)[0];
+            currentTargetWord = currentLevelWords.splice(randomIndex, 1)[0]; // Remove chosen word from list
             targetWordDisplay.textContent = currentTargetWord;
-            currentWord = ""; // Reset current word when a new target is set
+            currentWord = ""; // Reset current word for new target
             currentWordDisplay.textContent = "";
         }
 
         function levelUp() {
             level++;
-            showMessage(`Level ${level}!`, 1500, '#00C853'); // Green for level up
+            showMessage(`Level ${level}!`, 1500, '#00C853'); // Green message for level up
             if (level > levelSettings.length) {
                 gameOver(true); // Player won all levels
             } else {
-                setupLevel();
-                score += 100 * (level - 1); // Bonus for leveling up
+                setupLevel(); // Setup next level
+                score += 100 * (level - 1); // Bonus for leveling up (more for higher levels)
                 updateUI();
             }
         }
@@ -267,7 +331,7 @@
         function drawPlayer() {
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
-            // Add a little "cannon"
+            // Simple cannon representation
             ctx.fillStyle = '#333';
             ctx.fillRect(player.x + player.width / 2 - 5, player.y - 10, 10, 10);
         }
@@ -294,32 +358,27 @@
             if (!gameActive || !currentTargetWord) return;
 
             let charToSpawn;
-            // Increase chance of spawning a needed letter
-            if (currentWord.length < currentTargetWord.length && Math.random() < 0.6) { // 60% chance for a needed letter
-                // Try to spawn the next letter in the target word
-                charToSpawn = currentTargetWord[currentWord.length];
-                // If that letter is already in currentWord (meaning it's not the first occurrence needed)
-                // or if it's the last letter and it's already in the currentWord and we've already gotten to this spot,
-                // then fall back to a random needed letter.
-                if (currentWord.includes(charToSpawn) && currentWord.indexOf(charToSpawn) <= currentTargetWord.indexOf(charToSpawn)) {
-                     const neededLetters = currentTargetWord.split('').filter(c => !currentWord.includes(c) || currentWord.split(c).length <= currentTargetWord.split(c).length);
-                    if (neededLetters.length > 0) {
-                        charToSpawn = neededLetters[Math.floor(Math.random() * neededLetters.length)];
-                    } else {
-                         // All letters are technically "in" currentWord, but maybe not in correct count/order
-                         // Fallback to a random letter from the target word if all needed are 'gotten'
-                         charToSpawn = currentTargetWord[Math.floor(Math.random() * currentTargetWord.length)];
-                    }
+            // 60% chance to spawn a potentially useful letter for the current target word
+            if (currentWord.length < currentTargetWord.length && Math.random() < 0.6) {
+                // Determine which letters are *actually* still needed based on currentWord
+                const neededLettersInOrder = currentTargetWord.substring(currentWord.length).split('');
+                
+                if (neededLettersInOrder.length > 0) {
+                    charToSpawn = neededLettersInOrder[0]; // Prioritize the very next letter in the target word
+                } else {
+                    // Fallback if all needed letters are 'technically' in currentWord (e.g., if target was "APPLE" and current was "APP")
+                    const targetChars = currentTargetWord.split('');
+                    charToSpawn = targetChars[Math.floor(Math.random() * targetChars.length)];
                 }
+
             } else { // 40% chance for a random letter (distractor or useful)
                 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
                 charToSpawn = alphabet[Math.floor(Math.random() * alphabet.length)];
             }
 
-
             const x = Math.random() * (canvas.width - letterSize);
             const y = 0;
-            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ff00ff', '#ffa500', '#00ffff']; // Red, Green, Blue, Magenta, Orange, Cyan
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ff00ff', '#ffa500', '#00ffff']; // Variety of colors
             const color = colors[Math.floor(Math.random() * colors.length)];
             fallingLetters.push({ char: charToSpawn, x, y, color });
         }
@@ -331,7 +390,7 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Handle player movement
+            // Player movement based on keysPressed
             if (keysPressed['ArrowLeft'] || keysPressed['a']) {
                 player.x = Math.max(0, player.x - playerSpeed);
             }
@@ -339,20 +398,19 @@
                 player.x = Math.min(canvas.width - player.width, player.x + playerSpeed);
             }
 
-
             drawPlayer();
             drawBullets();
             drawFallingLetters();
 
-            // Move Bullets
-            bullets.forEach((bullet, bIndex) => {
-                bullet.y -= bulletSpeed;
-                if (bullet.y < 0) {
-                    bullets.splice(bIndex, 1);
+            // Update and clean up bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].y -= bulletSpeed;
+                if (bullets[i].y < 0) {
+                    bullets.splice(i, 1);
                 }
-            });
+            }
 
-            // Move Letters & Collision Detection
+            // Update and clean up falling letters, check for collisions
             for (let lIndex = fallingLetters.length - 1; lIndex >= 0; lIndex--) {
                 const letter = fallingLetters[lIndex];
                 letter.y += letterSpeed;
@@ -365,23 +423,24 @@
                     if (lives <= 0) {
                         gameOver(false);
                     }
-                    continue; // Continue to next letter as current one was removed
+                    continue; // Skip collision check for this letter, it's gone
                 }
 
                 // Bullet-Letter Collision
                 for (let bIndex = bullets.length - 1; bIndex >= 0; bIndex--) {
                     const bullet = bullets[bIndex];
+                    // Simple circular collision check
                     const dist = Math.sqrt(
                         (bullet.x - (letter.x + letterSize / 2)) ** 2 +
                         (bullet.y - (letter.y - letterSize / 2)) ** 2
                     );
 
                     if (dist < bullet.radius + letterSize / 2) {
-                        // Hit!
+                        // Collision detected!
                         bullets.splice(bIndex, 1); // Remove bullet
                         fallingLetters.splice(lIndex, 1); // Remove letter
 
-                        // If the hit letter is the next correct letter in the target word
+                        // Logic for correct/incorrect letter hit
                         if (currentTargetWord.startsWith(currentWord + letter.char)) {
                             currentWord += letter.char;
                             currentWordDisplay.textContent = currentWord;
@@ -391,7 +450,7 @@
                             if (currentWord === currentTargetWord) {
                                 score += 50; // Bonus for completing word
                                 showMessage(`"${currentTargetWord}" formed! +50`, 1500, '#4CAF50');
-                                pickNewTargetWord();
+                                pickNewTargetWord(); // Get next target word
                             }
                         } else {
                             // Incorrect letter or out of sequence
@@ -404,11 +463,10 @@
                             }
                         }
                         updateUI();
-                        break; // Break from bullet loop as letter is removed
+                        break; // Stop checking other bullets for this letter as it's removed
                     }
                 }
             }
-
 
             // Spawn new letters
             const currentTime = Date.now();
@@ -440,54 +498,56 @@
 
         function gameOver(win) {
             gameActive = false;
-            clearInterval(gameInterval);
+            clearInterval(gameInterval); // Stop the game loop
             let finalMessage = "";
             let messageColor = '';
             if (win) {
                 finalMessage = "🎉 YOU WON! 🎉\nAll levels completed!";
-                messageColor = '#00C853'; // Green
+                messageColor = '#00C853'; // Green for win
             } else {
                 finalMessage = "GAME OVER!\nTry again?";
-                messageColor = 'rgba(244, 67, 54, 0.9)'; // Red
+                messageColor = 'rgba(244, 67, 54, 0.9)'; // Red for game over
             }
             messageDisplay.textContent = finalMessage;
             messageDisplay.style.backgroundColor = messageColor;
             messageDisplay.style.display = 'block';
 
-            // Prompt for name and add high score
+            // Prompt for name for high score after a short delay
             setTimeout(() => {
                 const playerName = prompt("Enter your name for the high score list:");
                 if (playerName) {
                     addHighScore(playerName, score);
                 }
-                restartButton.style.display = 'block';
-            }, win ? 2000 : 1000); // Shorter delay for game over, longer for win
+                restartButton.style.display = 'block'; // Show "Play Again?" button
+            }, win ? 2000 : 1000); // Longer delay for win screen
         }
 
 
         // Event Listeners
         startButton.addEventListener('click', initGame);
         restartButton.addEventListener('click', () => {
-            initGame();
-            restartButton.style.display = 'none';
+            initGame(); // Re-initialize game state
+            restartButton.style.display = 'none'; // Hide play again button
             startButton.style.display = 'none'; // Ensure start button stays hidden
         });
 
+        // Keyboard input handling for player movement and shooting
         document.addEventListener('keydown', (e) => {
-            keysPressed[e.key] = true;
+            keysPressed[e.key] = true; // Mark key as pressed
             if (e.key === ' ' && gameActive) { // Spacebar to shoot
-                e.preventDefault(); // Prevent scrolling if spacebar is pressed
+                e.preventDefault(); // Prevent scrolling the page when spacebar is pressed
                 shoot();
             }
         });
 
         document.addEventListener('keyup', (e) => {
-            keysPressed[e.key] = false;
+            keysPressed[e.key] = false; // Mark key as released
         });
 
-        // Initial setup
-        updateHighScoresDisplay();
-        targetWordDisplay.textContent = "START"; // Initial display
+        // Initial setup when page loads
+        updateHighScoresDisplay(); // Load and display high scores
+        targetWordDisplay.textContent = "START"; // Initial target display
+        // The game won't start until 'startButton' is clicked
     </script>
 
 </body>
