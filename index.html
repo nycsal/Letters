@@ -1,3 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Fall Frenzy</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        #gameContainer {
+            border: 2px solid #333;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            position: relative;
+            background-color: #fff;
+            overflow: hidden; /* Prevents bullets from appearing outside */
+        }
+        #gameCanvas {
+            display: block;
+            background-color: #e0e0ff; /* Light blue sky */
+        }
+        #uiContainer {
+            display: flex;
+            justify-content: space-around;
+            width: 600px; /* Should match canvas width */
+            padding: 10px 0;
+            background-color: #333;
+            color: #fff;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        .ui-element {
+            text-align: center;
+        }
+        #currentWordDisplay {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffeb3b; /* Yellow for current word */
+            min-height: 25px;
+        }
+        #targetWordDisplay {
+            font-size: 1.1em;
+            color: #80cbc4; /* Teal for target word */
+        }
+        #scoreboard {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        #scoreboard h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        #highScoresList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #highScoresList li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        #highScoresList li:last-child {
+            border-bottom: none;
+        }
+        .start-button, .restart-button {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            color: white;
+            background-color: #4CAF50; /* Green */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background-color 0.3s ease;
+        }
+        .start-button:hover, .restart-button:hover {
+            background-color: #45a049;
+        }
+        #messageDisplay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            text-align: center;
+            z-index: 10;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Letter Fall Frenzy Buchstaben-Wahnsinn 🔡💥</h1>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        <div id="messageDisplay"></div>
+    </div>
+
+    <div id="uiContainer">
+        <div class="ui-element">Score: <span id="score">0</span></div>
+        <div class="ui-element">Level: <span id="level">1</span></div>
+        <div class="ui-element">Lives: <span id="lives">3</span></div>
+        <div class="ui-element">Target: <span id="targetWordDisplay">START</span></div>
+        <div class="ui-element">Current: <span id="currentWordDisplay"></span></div>
+    </div>
+
+    <button class="start-button" id="startButton">Start Game</button>
+    <button class="restart-button" id="restartButton" style="display: none;">Play Again?</button>
+
+    <div id="scoreboard">
+        <h2>🏆 High Scores 🏆</h2>
+        <ul id="highScoresList">
+            <li>No scores yet!</li>
+        </ul>
+    </div>
+
+    <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -341,6 +476,7 @@
         document.addEventListener('keydown', (e) => {
             keysPressed[e.key] = true;
             if (e.key === ' ' && gameActive) { // Spacebar to shoot
+                e.preventDefault(); // Prevent scrolling if spacebar is pressed
                 shoot();
             }
         });
@@ -352,4 +488,7 @@
         // Initial setup
         updateHighScoresDisplay();
         targetWordDisplay.textContent = "START"; // Initial display
+    </script>
 
+</body>
+</html>
