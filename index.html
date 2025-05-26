@@ -1,138 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-D">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Letter Fall Frenzy</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-            color: #333;
-        }
-        #gameContainer {
-            border: 2px solid #333;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-            position: relative;
-            background-color: #fff;
-            overflow: hidden; /* Prevents bullets from appearing outside */
-        }
-        #gameCanvas {
-            display: block;
-            background-color: #e0e0ff; /* Light blue sky */
-        }
-        #uiContainer {
-            display: flex;
-            justify-content: space-around;
-            width: 600px; /* Should match canvas width */
-            padding: 10px 0;
-            background-color: #333;
-            color: #fff;
-            border-bottom-left-radius: 8px;
-            border-bottom-right-radius: 8px;
-        }
-        .ui-element {
-            text-align: center;
-        }
-        #currentWordDisplay {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #ffeb3b; /* Yellow for current word */
-            min-height: 25px;
-        }
-        #targetWordDisplay {
-            font-size: 1.1em;
-            color: #80cbc4; /* Teal for target word */
-        }
-        #scoreboard {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        #scoreboard h2 {
-            margin-top: 0;
-            color: #333;
-        }
-        #highScoresList {
-            list-style-type: none;
-            padding: 0;
-        }
-        #highScoresList li {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-        }
-        #highScoresList li:last-child {
-            border-bottom: none;
-        }
-        .start-button, .restart-button {
-            padding: 10px 20px;
-            font-size: 1.2em;
-            color: white;
-            background-color: #4CAF50; /* Green */
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: background-color 0.3s ease;
-        }
-        .start-button:hover, .restart-button:hover {
-            background-color: #45a049;
-        }
-        #messageDisplay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.75);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            font-size: 1.5em;
-            text-align: center;
-            z-index: 10;
-            display: none; /* Hidden by default */
-        }
-    </style>
-</head>
-<body>
-
-    <h1>Letter Fall Frenzy  Buchstaben-Wahnsinn 🔡💥</h1>
-
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="600" height="400"></canvas>
-        <div id="messageDisplay"></div>
-    </div>
-
-    <div id="uiContainer">
-        <div class="ui-element">Score: <span id="score">0</span></div>
-        <div class="ui-element">Level: <span id="level">1</span></div>
-        <div class="ui-element">Lives: <span id="lives">3</span></div>
-        <div class="ui-element">Target: <span id="targetWordDisplay">START</span></div>
-        <div class="ui-element">Current: <span id="currentWordDisplay"></span></div>
-    </div>
-
-    <button class="start-button" id="startButton">Start Game</button>
-    <button class="restart-button" id="restartButton" style="display: none;">Play Again?</button>
-
-    <div id="scoreboard">
-        <h2>🏆 High Scores 🏆</h2>
-        <ul id="highScoresList">
-            <li>No scores yet!</li>
-        </ul>
-    </div>
-
-    <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -159,10 +24,15 @@
         const letterSize = 20;
         let maxLives = 3;
 
+        // Player movement
+        const keysPressed = {};
+
         const levelSettings = [
             { words: ["CAT", "DOG", "SUN"], speed: 0.5, spawn: 1500 }, // Level 1
             { words: ["CODE", "GAME", "HTML", "FUN"], speed: 0.75, spawn: 1200 }, // Level 2
-            { words: ["PYTHON", "GITHUB", "LEVELS", "AWESOME"], speed: 1, spawn: 1000 }  // Level 3
+            { words: ["PYTHON", "GITHUB", "LEVELS", "AWESOME"], speed: 1, spawn: 1000 }, // Level 3
+            { words: ["JAVASCRIPT", "DEVELOPER", "ALGORITHM", "PROGRAMMING"], speed: 1.25, spawn: 900 }, // Level 4
+            { words: ["FRAMEWORK", "DATABASE", "APPLICATION", "INTEGRATION"], speed: 1.5, spawn: 800 } // Level 5
         ];
         let currentLevelWords = [];
         let currentTargetWord = "";
@@ -207,6 +77,12 @@
             setupLevel();
             updateUI();
             if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, 1000 / 60); // 60 frames per second
+            gameActive = true;
+            messageDisplay.style.display = 'none';
+            startButton.style.display = 'none';
+            restartButton.style.display = 'none';
+            canvas.focus(); // Ensure canvas can receive keyboard input
         }
 
         function setupLevel() {
@@ -236,12 +112,12 @@
 
         function levelUp() {
             level++;
-            showMessage(`Level ${level}!`, 1500);
+            showMessage(`Level ${level}!`, 1500, '#00C853'); // Green for level up
             if (level > levelSettings.length) {
                 gameOver(true); // Player won all levels
             } else {
                 setupLevel();
-                score += 100 * (level -1) ; // Bonus for leveling up
+                score += 100 * (level - 1); // Bonus for leveling up
                 updateUI();
             }
         }
@@ -285,13 +161,20 @@
             let charToSpawn;
             // Increase chance of spawning a needed letter
             if (currentWord.length < currentTargetWord.length && Math.random() < 0.6) { // 60% chance for a needed letter
-                const neededLetters = currentTargetWord.split('').filter(c => !currentWord.includes(c));
-                if (neededLetters.length > 0 && currentTargetWord.includes(neededLetters[0])) {
-                     charToSpawn = currentTargetWord[currentWord.length]; // Try to spawn next letter in sequence
-                } else {
-                    // If next letter isn't good or not available, pick any from target
-                    const targetChars = currentTargetWord.split('');
-                    charToSpawn = targetChars[Math.floor(Math.random() * targetChars.length)];
+                // Try to spawn the next letter in the target word
+                charToSpawn = currentTargetWord[currentWord.length];
+                // If that letter is already in currentWord (meaning it's not the first occurrence needed)
+                // or if it's the last letter and it's already in the currentWord and we've already gotten to this spot,
+                // then fall back to a random needed letter.
+                if (currentWord.includes(charToSpawn) && currentWord.indexOf(charToSpawn) <= currentTargetWord.indexOf(charToSpawn)) {
+                     const neededLetters = currentTargetWord.split('').filter(c => !currentWord.includes(c) || currentWord.split(c).length <= currentTargetWord.split(c).length);
+                    if (neededLetters.length > 0) {
+                        charToSpawn = neededLetters[Math.floor(Math.random() * neededLetters.length)];
+                    } else {
+                         // All letters are technically "in" currentWord, but maybe not in correct count/order
+                         // Fallback to a random letter from the target word if all needed are 'gotten'
+                         charToSpawn = currentTargetWord[Math.floor(Math.random() * currentTargetWord.length)];
+                    }
                 }
             } else { // 40% chance for a random letter (distractor or useful)
                 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -308,10 +191,19 @@
 
 
         let lastSpawnTime = 0;
-        function updateGame() {
+        function gameLoop() {
             if (!gameActive) return;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Handle player movement
+            if (keysPressed['ArrowLeft'] || keysPressed['a']) {
+                player.x = Math.max(0, player.x - playerSpeed);
+            }
+            if (keysPressed['ArrowRight'] || keysPressed['d']) {
+                player.x = Math.min(canvas.width - player.width, player.x + playerSpeed);
+            }
+
 
             drawPlayer();
             drawBullets();
@@ -326,7 +218,8 @@
             });
 
             // Move Letters & Collision Detection
-            fallingLetters.forEach((letter, lIndex) => {
+            for (let lIndex = fallingLetters.length - 1; lIndex >= 0; lIndex--) {
+                const letter = fallingLetters[lIndex];
                 letter.y += letterSpeed;
 
                 // Letter reaches bottom
@@ -337,11 +230,12 @@
                     if (lives <= 0) {
                         gameOver(false);
                     }
-                    return; // Skip to next letter to avoid issues with removed element
+                    continue; // Continue to next letter as current one was removed
                 }
 
                 // Bullet-Letter Collision
-                bullets.forEach((bullet, bIndex) => {
+                for (let bIndex = bullets.length - 1; bIndex >= 0; bIndex--) {
+                    const bullet = bullets[bIndex];
                     const dist = Math.sqrt(
                         (bullet.x - (letter.x + letterSize / 2)) ** 2 +
                         (bullet.y - (letter.y - letterSize / 2)) ** 2
@@ -349,33 +243,37 @@
 
                     if (dist < bullet.radius + letterSize / 2) {
                         // Hit!
-                        bullets.splice(bIndex, 1);
-                        fallingLetters.splice(lIndex, 1);
+                        bullets.splice(bIndex, 1); // Remove bullet
+                        fallingLetters.splice(lIndex, 1); // Remove letter
 
-                        currentWord += letter.char;
-                        currentWordDisplay.textContent = currentWord;
-                        score += 10; // Points for hitting a letter
+                        // If the hit letter is the next correct letter in the target word
+                        if (currentTargetWord.startsWith(currentWord + letter.char)) {
+                            currentWord += letter.char;
+                            currentWordDisplay.textContent = currentWord;
+                            score += 10; // Points for hitting a correct letter
 
-                        // Check if currentWord matches targetWord
-                        if (currentWord === currentTargetWord) {
-                            score += 50; // Bonus for completing word
-                            showMessage(`"${currentTargetWord}" formed! +50`, 1500, '#4CAF50');
-                            pickNewTargetWord();
-                        } else if (currentTargetWord.startsWith(currentWord)) {
-                            // Good partial match
-                            score += 5; // Small bonus for correct sequence
+                            // Check if currentWord matches targetWord
+                            if (currentWord === currentTargetWord) {
+                                score += 50; // Bonus for completing word
+                                showMessage(`"${currentTargetWord}" formed! +50`, 1500, '#4CAF50');
+                                pickNewTargetWord();
+                            }
                         } else {
-                            // Incorrect letter for the sequence
-                            showMessage(`Oops! Need letters for "${currentTargetWord}"`, 1000, '#f44336');
+                            // Incorrect letter or out of sequence
+                            showMessage(`Oops! Wrong letter for "${currentTargetWord}"`, 1000, '#f44336');
                             currentWord = ""; // Reset current word if sequence is broken
                             currentWordDisplay.textContent = "";
-                            lives--; // Penalty for wrong letter sequence if desired
-                            if (lives <= 0) gameOver(false);
+                            lives--; // Penalty for wrong letter
+                            if (lives <= 0) {
+                                gameOver(false);
+                            }
                         }
                         updateUI();
+                        break; // Break from bullet loop as letter is removed
                     }
-                });
-            });
+                }
+            }
+
 
             // Spawn new letters
             const currentTime = Date.now();
@@ -387,4 +285,71 @@
 
         function shoot() {
             if (!gameActive) return;
-            const bullet =
+            const bullet = {
+                x: player.x + player.width / 2,
+                y: player.y - playerHeight / 2,
+                radius: bulletRadius,
+                color: '#ffc107' // Yellow bullet
+            };
+            bullets.push(bullet);
+        }
+
+        function showMessage(msg, duration = 2000, color = 'white') {
+            messageDisplay.textContent = msg;
+            messageDisplay.style.backgroundColor = color;
+            messageDisplay.style.display = 'block';
+            setTimeout(() => {
+                messageDisplay.style.display = 'none';
+            }, duration);
+        }
+
+        function gameOver(win) {
+            gameActive = false;
+            clearInterval(gameInterval);
+            let finalMessage = "";
+            let messageColor = '';
+            if (win) {
+                finalMessage = "🎉 YOU WON! 🎉\nAll levels completed!";
+                messageColor = '#00C853'; // Green
+            } else {
+                finalMessage = "GAME OVER!\nTry again?";
+                messageColor = 'rgba(244, 67, 54, 0.9)'; // Red
+            }
+            messageDisplay.textContent = finalMessage;
+            messageDisplay.style.backgroundColor = messageColor;
+            messageDisplay.style.display = 'block';
+
+            // Prompt for name and add high score
+            setTimeout(() => {
+                const playerName = prompt("Enter your name for the high score list:");
+                if (playerName) {
+                    addHighScore(playerName, score);
+                }
+                restartButton.style.display = 'block';
+            }, win ? 2000 : 1000); // Shorter delay for game over, longer for win
+        }
+
+
+        // Event Listeners
+        startButton.addEventListener('click', initGame);
+        restartButton.addEventListener('click', () => {
+            initGame();
+            restartButton.style.display = 'none';
+            startButton.style.display = 'none'; // Ensure start button stays hidden
+        });
+
+        document.addEventListener('keydown', (e) => {
+            keysPressed[e.key] = true;
+            if (e.key === ' ' && gameActive) { // Spacebar to shoot
+                shoot();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key] = false;
+        });
+
+        // Initial setup
+        updateHighScoresDisplay();
+        targetWordDisplay.textContent = "START"; // Initial display
+
