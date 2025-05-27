@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Red Balloon Blaster</title>
+    <title>Red Balloon Blaster - Evolved</title>
     <style>
-        /* --- CSS Styling (style.css content) --- */
+        /* --- CSS Styling --- */
         body {
             margin: 0;
             font-family: 'Arial', sans-serif;
@@ -64,13 +64,13 @@
             font-size: 1.1em;
             width: 60%;
             max-width: 300px;
-            color: #333; /* Input text color */
+            color: #333;
         }
 
         #start-screen button,
         #pause-screen button,
         #level-complete-screen button,
-        #game-over-screen button { /* Controls button is separate */
+        #game-over-screen button {
             padding: 10px 20px;
             margin: 10px;
             font-size: 1.2em;
@@ -89,16 +89,15 @@
             background-color: #0056b3;
         }
 
-
         /* Game Play Screen */
         #game-play-screen {
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Push controls to bottom */
+            justify-content: space-between;
             align-items: stretch;
             padding: 10px;
-            box-sizing: border-box; /* Include padding in element's total width and height */
-            background-color: #444; /* Darker background for game area */
+            box-sizing: border-box;
+            background-color: #444;
         }
 
         #game-info {
@@ -113,10 +112,10 @@
         }
 
         #game-area {
-            flex-grow: 1; /* Takes up available space */
-            position: relative; /* For absolute positioning of balloons and cannon */
-            overflow: hidden; /* Crucial for balloons not escaping */
-            background-color: #666; /* Background for where balloons fall */
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            background-color: #666;
             border-radius: 5px;
             cursor: pointer; /* Indicates it's clickable */
             touch-action: none; /* Prevent browser touch actions like scrolling/zooming */
@@ -125,16 +124,16 @@
         #cannon {
             position: absolute;
             bottom: 5px;
-            width: 60px; /* Width of the cannon */
-            height: 40px; /* Height of the cannon base */
-            background-color: #8B4513; /* Brown color for cannon base */
+            width: 60px;
+            height: 40px;
+            background-color: #8B4513;
             border-radius: 10px 10px 0 0;
-            left: calc(50% - 30px); /* Start in the middle */
+            left: calc(50% - 30px);
             cursor: grab;
-            z-index: 5; /* Ensure cannon is above balloons initially */
+            z-index: 5;
         }
 
-        #cannon::before { /* Cannon barrel */
+        #cannon::before {
             content: '';
             position: absolute;
             top: -20px;
@@ -155,9 +154,9 @@
             border-radius: 5px;
         }
 
-        #controls button { /* Specific style for pause button */
+        #controls button {
             padding: 10px 20px;
-            margin: 0 10px; /* Adjust margin */
+            margin: 0 10px;
             font-size: 1.2em;
             cursor: pointer;
             background-color: #007bff;
@@ -170,21 +169,20 @@
             background-color: #0056b3;
         }
 
-
         /* Balloons - heart shape */
         .balloon {
             position: absolute;
-            width: 30px; /* Smaller balloon size */
-            height: 30px; /* Smaller balloon size */
-            animation: fall linear forwards; /* Controlled by JS */
+            width: 30px;
+            height: 30px;
+            animation: fall linear forwards;
             opacity: 1;
-            transition: opacity 0.2s ease-out, transform 0.2s ease-out; /* For popping animation */
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
             z-index: 2;
         }
 
         .balloon.popped {
             opacity: 0;
-            transform: scale(0); /* Shrink on pop */
+            transform: scale(0);
         }
 
         /* Improved Heart Shape */
@@ -194,17 +192,19 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            background-color: inherit; /* Inherit color from parent .balloon */
+            background-color: inherit;
             border-radius: 50%;
         }
 
         .balloon::before {
-            left: -50%; /* Shift left to overlap for heart top left lobe */
+            left: -50%;
+            top: 0; /* Changed to 0 to align with parent for better base */
             transform: translateY(-50%); /* Move up */
         }
 
         .balloon::after {
-            left: 50%; /* Shift right for heart top right lobe */
+            left: 50%;
+            top: 0; /* Changed to 0 */
             transform: translateY(-50%); /* Move up */
         }
 
@@ -212,10 +212,7 @@
         .balloon {
             transform: rotate(-45deg); /* Rotate the main square to form the diamond */
             transform-origin: center center;
-            /* Adjust positioning slightly to center the rotated shape */
-            /* This will be handled by JS for top/left positioning */
         }
-
 
         /* Specific balloon colors */
         .balloon.red { background-color: #ff0000; }
@@ -224,22 +221,63 @@
         .balloon.yellow { background-color: #ffff00; }
         .balloon.purple { background-color: #800080; }
 
-
         /* Cannonball */
         .cannonball {
             position: absolute;
             width: 10px;
             height: 10px;
-            background-color: #fff; /* White cannonball */
+            background-color: #fff;
             border-radius: 50%;
             z-index: 4;
-            transition: transform linear; /* For smooth movement, handled by JS */
+            transition: transform linear;
         }
+
+        /* Boss Specifics */
+        #boss {
+            position: absolute;
+            top: 20px; /* Start near the top */
+            width: 100px; /* Bigger size */
+            height: 100px;
+            background-color: #6a0dad; /* Purple for boss */
+            border-radius: 10px;
+            left: calc(50% - 50px);
+            display: none; /* Hidden by default */
+            z-index: 3;
+            transition: left 0.5s ease-in-out; /* Smooth boss movement */
+        }
+
+        #boss-health-bar {
+            position: absolute;
+            bottom: -20px; /* Below the boss */
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background-color: #dc3545; /* Red for empty */
+            border: 1px solid #000;
+            box-sizing: border-box;
+        }
+
+        #boss-health-bar-fill {
+            width: 100%;
+            height: 100%;
+            background-color: #28a745; /* Green for full */
+            transition: width 0.2s ease-out;
+        }
+
+        .boss-projectile {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #ffc107; /* Orange/Yellow */
+            border-radius: 50%;
+            z-index: 6; /* Above cannonballs */
+        }
+
 
         /* Animations */
         @keyframes fall {
-            from { transform: translateY(-100px) rotate(-45deg); } /* Start slightly above game area, keep heart rotation */
-            to { transform: translateY(calc(100% + 50px)) rotate(-45deg); } /* Fall past bottom, keep heart rotation */
+            from { transform: translateY(-100px) rotate(-45deg); }
+            to { transform: translateY(calc(100% + 50px)) rotate(-45deg); }
         }
 
         @keyframes fire-animation {
@@ -256,7 +294,7 @@
 <body>
     <div id="game-container">
         <div id="start-screen" class="game-screen">
-            <h1>Red Balloon Blaster</h1>
+            <h1>Red Balloon Blaster - Evolved!</h1>
             <p>Enter your name:</p>
             <input type="text" id="playerNameInput" placeholder="Your Name">
             <button id="startButton">Start Game</button>
@@ -274,7 +312,7 @@
             </div>
             <div id="controls">
                 <button id="pauseButton">Pause</button>
-                </div>
+            </div>
         </div>
 
         <div id="pause-screen" class="game-screen hidden">
@@ -297,7 +335,7 @@
     </div>
 
     <script>
-        /* --- JavaScript Logic (script.js content) --- */
+        /* --- JavaScript Logic --- */
         // --- Game State Variables ---
         let playerName = '';
         let score = 0;
@@ -307,7 +345,18 @@
         let gamePaused = false;
         let gameLoopInterval;
         let balloonGenerationInterval;
-        const balloonsOnScreen = []; // Array to hold active balloon elements
+        const activeGameObjects = []; // Array to hold active balloons, boss projectiles
+        let isFiringContinuously = false;
+        let fireRateInterval; // Interval for continuous firing
+        let currentFireInterval = 200; // Initial fire interval in ms
+        const MIN_FIRE_INTERVAL = 50; // Fastest fire rate possible
+
+        // Boss variables
+        let boss = null;
+        let bossHealth = 0;
+        let bossMaxHealth = 0;
+        let bossFiringInterval;
+        const BOSS_LEVEL = 3; // The level where the boss appears
 
         // --- DOM Elements ---
         const gameContainer = document.getElementById('game-container');
@@ -315,7 +364,7 @@
         const gamePlayScreen = document.getElementById('game-play-screen');
         const pauseScreen = document.getElementById('pause-screen');
         const levelCompleteScreen = document.getElementById('level-complete-screen');
-        const gameOverScreen = document.getElementById('game-over-screen');
+        const gameOverScreen = document.getElementById('gameOver-screen');
 
         const playerNameInput = document.getElementById('playerNameInput');
         const startButton = document.getElementById('startButton');
@@ -327,7 +376,6 @@
         const gameArea = document.getElementById('game-area');
         const cannon = document.getElementById('cannon');
         const pauseButton = document.getElementById('pauseButton');
-        // const fireButton = document.getElementById('fireButton'); // Removed, now tap gameArea
 
         const continueButton = document.getElementById('continueButton');
         const restartButtonPause = document.getElementById('restartButtonPause');
@@ -341,18 +389,23 @@
 
         // --- Game Settings (Adjust for difficulty) ---
         const LEVEL_SETTINGS = {
-            1: { balloonSpeed: 1.5, generationRate: 1500, nonRedChance: 0.2, balloonsToShoot: 10 },
-            2: { balloonSpeed: 2.0, generationRate: 1200, nonRedChance: 0.3, balloonsToShoot: 12 },
-            3: { balloonSpeed: 2.5, generationRate: 1000, nonRedChance: 0.4, balloonsToShoot: 15 },
-            4: { balloonSpeed: 3.0, generationRate: 800, nonRedChance: 0.5, balloonsToShoot: 18 },
-            5: { balloonSpeed: 3.5, generationRate: 600, nonRedChance: 0.6, balloonsToShoot: 20 }
+            1: { balloonSpeed: 1.5, generationRate: 1500, balloonsToClear: 20, initialFireInterval: 200 },
+            2: { balloonSpeed: 2.0, generationRate: 1200, balloonsToClear: 30, initialFireInterval: 180 },
+            3: { // Boss Level
+                balloonSpeed: 0, generationRate: 0, balloonsToClear: 1, // Cleared by defeating boss
+                bossHealth: 200, bossSpeed: 1.5, bossFireRate: 1000, bossProjectileSpeed: 5
+            },
+            4: { balloonSpeed: 2.5, generationRate: 1000, balloonsToClear: 40, initialFireInterval: 160 },
+            5: { balloonSpeed: 3.0, generationRate: 800, balloonsToClear: 50, initialFireInterval: 140 }
         };
-        const BALLOON_SIZE = 30; // px (Reduced size)
-        const CANNONBALL_SPEED = 10; // Pixels per frame
-        const SCORE_PER_RED_BALLOON = 10;
+        const BALLOON_SIZE = 30; // px
+        const CANNONBALL_SPEED = 15; // Pixels per frame (increased for better feel)
+        const SCORE_PER_OBJECT = 10;
+        const BOSS_SHOT_DAMAGE = 10; // Damage one cannonball does to boss
         const MAX_LEVEL = 5;
 
-        let redBalloonsShotInLevel = 0;
+        let objectsClearedInLevel = 0; // Tracks all objects shot down (balloons, boss)
+        let totalObjectsGenerated = 0; // Tracks how many balloons have been generated this level
 
         // --- Utility Functions ---
         function showScreen(screenElement) {
@@ -370,7 +423,7 @@
         }
 
         function getRandomColor() {
-            const colors = ['blue', 'green', 'yellow', 'purple']; // Exclude red for non-red balloons
+            const colors = ['red', 'blue', 'green', 'yellow', 'purple'];
             return colors[Math.floor(Math.random() * colors.length)];
         }
 
@@ -385,11 +438,13 @@
             score = 0;
             lives = 3;
             level = 1;
-            redBalloonsShotInLevel = 0;
-            balloonsOnScreen.length = 0; // Clear any existing balloons
-            gameArea.innerHTML = ''; // Clear existing balloons and cannonballs
-            gameArea.appendChild(cannon); // Re-add cannon to game area
+            objectsClearedInLevel = 0;
+            totalObjectsGenerated = 0;
+            activeGameObjects.length = 0; // Clear any existing objects
+            gameArea.innerHTML = ''; // Clear existing elements
+            gameArea.appendChild(cannon); // Re-add cannon
             cannon.style.left = `${gameArea.offsetWidth / 2 - cannon.offsetWidth / 2}px`; // Reset cannon position
+            currentFireInterval = LEVEL_SETTINGS[1].initialFireInterval; // Reset fire rate
 
             showScreen(gamePlayScreen);
             gameRunning = true;
@@ -399,19 +454,28 @@
         }
 
         function startLevel() {
-            redBalloonsShotInLevel = 0;
-            balloonsOnScreen.length = 0;
-            gameArea.querySelectorAll('.balloon').forEach(b => b.remove()); // Remove all balloons
-            gameArea.querySelectorAll('.cannonball').forEach(cb => cb.remove()); // Remove all cannonballs
+            objectsClearedInLevel = 0;
+            totalObjectsGenerated = 0; // Reset for new level
+            activeGameObjects.length = 0;
+            gameArea.querySelectorAll('.balloon, .cannonball, .boss-projectile, #boss').forEach(el => el.remove());
 
             const currentSettings = LEVEL_SETTINGS[level];
             if (!currentSettings) {
-                endGame(true); // Treat as a win if somehow tried to start a level beyond MAX_LEVEL
+                endGame(true); // Should not happen if all levels covered, acts as a win
                 return;
             }
 
             clearInterval(balloonGenerationInterval);
-            balloonGenerationInterval = setInterval(generateBalloon, currentSettings.generationRate);
+            clearInterval(bossFiringInterval);
+            if (boss) boss.remove(); // Remove boss if present from previous level
+            boss = null;
+
+            if (level === BOSS_LEVEL) {
+                spawnBoss();
+            } else {
+                balloonGenerationInterval = setInterval(generateBalloon, currentSettings.generationRate);
+            }
+
             if (gameLoopInterval) {
                 cancelAnimationFrame(gameLoopInterval); // Stop previous loop if running
             }
@@ -423,42 +487,55 @@
             gamePaused = true;
             showScreen(pauseScreen);
             clearInterval(balloonGenerationInterval);
-            cancelAnimationFrame(gameLoopInterval); // Stop animation frame loop
+            clearInterval(fireRateInterval); // Stop continuous fire
+            clearInterval(bossFiringInterval); // Stop boss firing
+            cancelAnimationFrame(gameLoopInterval);
         }
 
         function continueGame() {
             gamePaused = false;
             showScreen(gamePlayScreen);
             const currentSettings = LEVEL_SETTINGS[level];
-            balloonGenerationInterval = setInterval(generateBalloon, currentSettings.generationRate);
-            gameLoop(); // Resume animation frame loop
+            if (level === BOSS_LEVEL) {
+                startBossFiring();
+            } else {
+                balloonGenerationInterval = setInterval(generateBalloon, currentSettings.generationRate);
+            }
+            if (isFiringContinuously) { // Resume continuous fire if it was active
+                startContinuousFire();
+            }
+            gameLoop();
         }
 
         function restartGame() {
             clearInterval(balloonGenerationInterval);
+            clearInterval(fireRateInterval);
+            clearInterval(bossFiringInterval);
             cancelAnimationFrame(gameLoopInterval);
-            startGame(); // Simply restart from the beginning
+            startGame();
         }
 
         function endGame(win = false) {
             gameRunning = false;
             gamePaused = false;
             clearInterval(balloonGenerationInterval);
+            clearInterval(fireRateInterval);
+            clearInterval(bossFiringInterval);
             cancelAnimationFrame(gameLoopInterval);
-            gameArea.innerHTML = ''; // Clear game area (except cannon)
+            gameArea.innerHTML = '';
             gameArea.appendChild(cannon); // Ensure cannon is back for next game
 
             if (win) {
-                if (level > MAX_LEVEL) { // All levels truly completed
+                if (level > MAX_LEVEL) {
                     levelCompleteMessage.textContent = "You Win! All Levels Complete!";
                     levelCompletePlayerName.textContent = playerName;
                     nextLevelButton.textContent = "Play Again!";
                     nextLevelButton.onclick = restartGame;
-                } else { // Current level completed, going to next
+                } else {
                     levelCompleteMessage.textContent = `Level ${level} Complete!`;
                     levelCompletePlayerName.textContent = playerName;
                     nextLevelButton.textContent = "Next Level";
-                    nextLevelButton.onclick = nextLevel; // Set to advance to next level
+                    nextLevelButton.onclick = nextLevel;
                 }
                 showScreen(levelCompleteScreen);
 
@@ -469,39 +546,85 @@
         }
 
         function generateBalloon() {
-            if (!gameRunning || gamePaused) return;
+            if (!gameRunning || gamePaused || level === BOSS_LEVEL) return; // Don't generate balloons on boss level
 
             const balloon = document.createElement('div');
-            const color = Math.random() < LEVEL_SETTINGS[level].nonRedChance ? getRandomColor() : 'red';
+            const color = getRandomColor(); // Any color is targetable now
             balloon.className = `balloon ${color}`;
             balloon.dataset.color = color;
-            // Position randomly within the game area width, accounting for balloon size
+            balloon.dataset.type = 'balloon'; // New dataset for object type
             balloon.style.left = `${Math.random() * (gameArea.offsetWidth - BALLOON_SIZE)}px`;
-            balloon.style.top = `-50px`; // Start above the screen
+            balloon.style.top = `-50px`;
             gameArea.appendChild(balloon);
-            balloonsOnScreen.push(balloon);
+            activeGameObjects.push(balloon);
+            totalObjectsGenerated++;
         }
 
-        function moveBalloons() {
+        function moveGameObjects() {
             const currentSettings = LEVEL_SETTINGS[level];
-            // Iterate backwards when removing elements from an array
-            for (let i = balloonsOnScreen.length - 1; i >= 0; i--) {
-                const balloon = balloonsOnScreen[i];
-                let currentTop = parseFloat(balloon.style.top);
-                balloon.style.top = `${currentTop + currentSettings.balloonSpeed}px`;
+            for (let i = activeGameObjects.length - 1; i >= 0; i--) {
+                const obj = activeGameObjects[i];
 
-                // Check if balloon went off screen (missed)
-                if (currentTop > gameArea.offsetHeight) {
-                    if (balloon.dataset.color === 'red' && !balloon.dataset.popped) {
+                if (obj.dataset.type === 'balloon') {
+                    let currentTop = parseFloat(obj.style.top);
+                    obj.style.top = `${currentTop + currentSettings.balloonSpeed}px`;
+
+                    // Check if balloon went off screen (missed)
+                    if (currentTop > gameArea.offsetHeight) {
+                        if (!obj.dataset.popped) { // If not shot down
+                            lives--;
+                            updateDisplay();
+                            if (lives <= 0) {
+                                endGame();
+                                return;
+                            }
+                        }
+                        obj.remove();
+                        activeGameObjects.splice(i, 1);
+                    }
+                } else if (obj.dataset.type === 'bossProjectile') {
+                    let currentTop = parseFloat(obj.style.top);
+                    obj.style.top = `${currentTop + currentSettings.bossProjectileSpeed}px`;
+
+                    // Check collision with cannon
+                    const cannonRect = cannon.getBoundingClientRect();
+                    const projectileRect = obj.getBoundingClientRect();
+                    const gameAreaRect = gameArea.getBoundingClientRect();
+
+                    const cannonRelRect = {
+                        left: cannonRect.left - gameAreaRect.left,
+                        right: cannonRect.right - gameAreaRect.left,
+                        top: cannonRect.top - gameAreaRect.top,
+                        bottom: cannonRect.bottom - gameAreaRect.top
+                    };
+                    const projectileRelRect = {
+                        left: projectileRect.left - gameAreaRect.left,
+                        right: projectileRect.right - gameAreaRect.left,
+                        top: projectileRect.top - gameAreaRect.top,
+                        bottom: projectileRect.bottom - gameAreaRect.top
+                    };
+
+                    if (
+                        projectileRelRect.left < cannonRelRect.right &&
+                        projectileRelRect.right > cannonRelRect.left &&
+                        projectileRelRect.top < cannonRelRect.bottom &&
+                        projectileRelRect.bottom > cannonRelRect.top
+                    ) {
+                        // Collision with cannon!
                         lives--;
                         updateDisplay();
+                        obj.remove();
+                        activeGameObjects.splice(i, 1);
                         if (lives <= 0) {
                             endGame();
-                            return; // Exit function if game ends
+                            return;
                         }
                     }
-                    balloon.remove();
-                    balloonsOnScreen.splice(i, 1); // Remove from array
+                    // Remove if off screen
+                    else if (currentTop > gameArea.offsetHeight) {
+                        obj.remove();
+                        activeGameObjects.splice(i, 1);
+                    }
                 }
             }
         }
@@ -510,58 +633,59 @@
             let currentBottom = parseFloat(cannonball.style.bottom);
             cannonball.style.bottom = `${currentBottom + CANNONBALL_SPEED}px`;
 
-            // Check collision with balloons
-            for (let i = balloonsOnScreen.length - 1; i >= 0; i--) {
-                const balloon = balloonsOnScreen[i];
-                // Check if balloon is still in the DOM and not already popped
-                if (balloon.dataset.popped || !gameArea.contains(balloon)) continue;
+            // Check collision with game objects (balloons or boss)
+            for (let i = activeGameObjects.length - 1; i >= 0; i--) {
+                const obj = activeGameObjects[i];
+                if (obj.dataset.popped || !gameArea.contains(obj)) continue; // Skip already popped or removed
 
-                const balloonRect = balloon.getBoundingClientRect();
+                const objRect = obj.getBoundingClientRect();
                 const cannonballRect = cannonball.getBoundingClientRect();
 
-                // Simple AABB collision detection
                 if (
-                    cannonballRect.left < balloonRect.right &&
-                    cannonballRect.right > balloonRect.left &&
-                    cannonballRect.top < balloonRect.bottom &&
-                    cannonballRect.bottom > balloonRect.top
+                    cannonballRect.left < objRect.right &&
+                    cannonballRect.right > objRect.left &&
+                    cannonballRect.top < objRect.bottom &&
+                    cannonballRect.bottom > objRect.top
                 ) {
                     // Collision!
                     cannonball.remove(); // Remove cannonball
 
-                    if (balloon.dataset.color === 'red') {
-                        score += SCORE_PER_RED_BALLOON;
-                        redBalloonsShotInLevel++;
-                        balloon.classList.add('popped');
-                        balloon.dataset.popped = 'true'; // Mark as popped
-                        // Remove balloon from DOM after animation
+                    if (obj.dataset.type === 'balloon') {
+                        score += SCORE_PER_OBJECT;
+                        objectsClearedInLevel++;
+                        obj.classList.add('popped');
+                        obj.dataset.popped = 'true';
                         setTimeout(() => {
-                            if (gameArea.contains(balloon)) {
-                                balloon.remove();
-                            }
-                        }, 200); // Wait for CSS transition
-                    } else {
-                        lives--; // Lose a life for shooting wrong color
-                        balloon.classList.add('popped');
-                        balloon.dataset.popped = 'true';
-                        setTimeout(() => {
-                            if (gameArea.contains(balloon)) {
-                                balloon.remove();
+                            if (gameArea.contains(obj)) {
+                                obj.remove();
+                                // Remove from activeGameObjects array
+                                const objIndex = activeGameObjects.indexOf(obj);
+                                if (objIndex > -1) {
+                                    activeGameObjects.splice(objIndex, 1);
+                                }
                             }
                         }, 200);
+                    } else if (obj.id === 'boss') {
+                        bossHealth -= BOSS_SHOT_DAMAGE;
+                        updateBossHealthBar();
+                        if (bossHealth <= 0) {
+                            score += 500; // Bonus points for boss kill
+                            objectsClearedInLevel++; // Count boss as one cleared object
+                            boss.remove();
+                            clearInterval(bossFiringInterval);
+                            boss = null;
+                            activeGameObjects.splice(activeGameObjects.indexOf(obj), 1); // Remove boss from array
+                            checkLevelCompletion(); // Boss defeated, check level
+                        }
                     }
                     updateDisplay();
-                    if (lives <= 0) {
-                        endGame();
-                        return; // Exit function if game ends
-                    }
-                    checkLevelCompletion();
-                    return; // Cannonball hit a balloon, stop checking for this cannonball
+                    checkLevelCompletion(); // Check if balloon cleared advances level
+                    return; // Cannonball hit an object, stop checking for this cannonball
                 }
             }
 
             // Remove cannonball if it goes off screen
-            if (currentBottom > gameArea.offsetHeight) {
+            if (currentBottom < 0) { // Cannonballs go up, so check top
                 cannonball.remove();
             }
         }
@@ -571,28 +695,66 @@
             if (!gameRunning || gamePaused) return;
 
             cannon.classList.add('firing');
-            setTimeout(() => cannon.classList.remove('firing'), 100); // Reset firing animation
+            setTimeout(() => cannon.classList.remove('firing'), 100);
 
             const cannonball = document.createElement('div');
             cannonball.className = 'cannonball';
-            // Position cannonball above the cannon barrel, centered
             cannonball.style.left = `${cannon.offsetLeft + cannon.offsetWidth / 2 - 5}px`;
-            cannonball.style.bottom = `${cannon.offsetHeight - 5}px`; // Just above cannon
+            cannonball.style.bottom = `${cannon.offsetHeight - 5}px`;
             gameArea.appendChild(cannonball);
+            // Cannonballs are not added to activeGameObjects as they are temporary and only move upwards
         }
+
+        // --- Continuous Fire Logic ---
+        function startContinuousFire() {
+            if (isFiringContinuously) return; // Prevent multiple intervals
+            isFiringContinuously = true;
+            fireCannon(); // Fire immediately on hold
+            fireRateInterval = setInterval(fireCannon, currentFireInterval);
+        }
+
+        function stopContinuousFire() {
+            isFiringContinuously = false;
+            clearInterval(fireRateInterval);
+        }
+
+        function increaseFireRate() {
+            // This could be tied to score or a separate "fire power" metric
+            // For now, let's tie it to every X points
+            // Example: Increase fire rate every 100 points
+            const newFireInterval = LEVEL_SETTINGS[level].initialFireInterval - Math.floor(score / 100) * 10;
+            currentFireInterval = Math.max(newFireInterval, MIN_FIRE_INTERVAL);
+
+            if (isFiringContinuously) {
+                stopContinuousFire();
+                startContinuousFire(); // Restart interval with new rate
+            }
+        }
+
 
         function checkLevelCompletion() {
             const currentSettings = LEVEL_SETTINGS[level];
-            if (redBalloonsShotInLevel >= currentSettings.balloonsToShoot) {
-                gameRunning = false;
-                clearInterval(balloonGenerationInterval);
-                cancelAnimationFrame(gameLoopInterval); // Stop game loop
-
-                if (level < MAX_LEVEL) {
-                    showScreen(levelCompleteScreen);
-                } else {
-                    endGame(true); // All levels completed, you win!
+            if (level === BOSS_LEVEL) {
+                // For boss level, completion is when boss is defeated
+                if (boss === null) { // Boss is removed when defeated
+                    advanceLevelOrWin();
                 }
+            } else if (objectsClearedInLevel >= currentSettings.balloonsToClear) {
+                // For regular levels, clear target number of objects
+                advanceLevelOrWin();
+            }
+        }
+
+        function advanceLevelOrWin() {
+            gameRunning = false;
+            clearInterval(balloonGenerationInterval);
+            clearInterval(bossFiringInterval);
+            cancelAnimationFrame(gameLoopInterval);
+
+            if (level < MAX_LEVEL) {
+                showScreen(levelCompleteScreen);
+            } else {
+                endGame(true); // All levels completed, you win!
             }
         }
 
@@ -609,11 +771,81 @@
             startLevel();
         }
 
+        // --- Boss Logic ---
+        function spawnBoss() {
+            boss = document.createElement('div');
+            boss.id = 'boss';
+            boss.style.display = 'block'; // Make visible
+
+            const healthBar = document.createElement('div');
+            healthBar.id = 'boss-health-bar';
+            const healthFill = document.createElement('div');
+            healthFill.id = 'boss-health-bar-fill';
+            healthBar.appendChild(healthFill);
+            boss.appendChild(healthBar);
+
+            gameArea.appendChild(boss);
+            activeGameObjects.push(boss); // Add boss to active game objects
+
+            const currentSettings = LEVEL_SETTINGS[BOSS_LEVEL];
+            bossMaxHealth = currentSettings.bossHealth;
+            bossHealth = bossMaxHealth;
+            updateBossHealthBar();
+
+            // Initial boss position
+            boss.style.left = `${Math.random() * (gameArea.offsetWidth - boss.offsetWidth)}px`;
+
+            startBossFiring();
+            moveBoss(); // Start moving the boss
+        }
+
+        function updateBossHealthBar() {
+            if (boss) {
+                const healthFill = document.getElementById('boss-health-bar-fill');
+                const percentage = (bossHealth / bossMaxHealth) * 100;
+                healthFill.style.width = `${Math.max(0, percentage)}%`;
+            }
+        }
+
+        function startBossFiring() {
+            const currentSettings = LEVEL_SETTINGS[BOSS_LEVEL];
+            clearInterval(bossFiringInterval);
+            bossFiringInterval = setInterval(fireBossProjectile, currentSettings.bossFireRate);
+        }
+
+        function fireBossProjectile() {
+            if (!gameRunning || gamePaused || !boss) return;
+
+            const projectile = document.createElement('div');
+            projectile.className = 'boss-projectile';
+            projectile.dataset.type = 'bossProjectile';
+
+            // Position projectile from the boss's center
+            projectile.style.left = `${boss.offsetLeft + boss.offsetWidth / 2 - 7.5}px`;
+            projectile.style.top = `${boss.offsetTop + boss.offsetHeight}px`; // Below boss
+
+            gameArea.appendChild(projectile);
+            activeGameObjects.push(projectile);
+        }
+
+        function moveBoss() {
+            if (!gameRunning || gamePaused || !boss) return;
+
+            const currentSettings = LEVEL_SETTINGS[BOSS_LEVEL];
+            // Boss moves randomly horizontally
+            let targetX = Math.random() * (gameArea.offsetWidth - boss.offsetWidth);
+            boss.style.left = `${targetX}px`;
+
+            // Adjust movement speed / frequency if needed for difficulty
+            setTimeout(moveBoss, 2000); // Move boss every 2 seconds randomly
+        }
+
+
         // --- Game Loop (requestAnimationFrame for smooth animations) ---
         function gameLoop() {
             if (!gameRunning || gamePaused) return;
 
-            moveBalloons();
+            moveGameObjects(); // Move balloons and boss projectiles
 
             // Move all active cannonballs
             gameArea.querySelectorAll('.cannonball').forEach(cb => {
@@ -631,29 +863,42 @@
             if (e.key === 'Enter') startGame();
         });
 
-        // Game Play Screen - Tap to Fire & Cannon Drag
+        // Game Play Screen - Tap/Hold to Fire & Cannon Drag
         let isDraggingCannon = false;
         let initialCannonX;
-        let initialClientX; // Can be mouseX or touchX
+        let initialClientX;
 
-        // Listener for both mouse down and touch start on the cannon itself
-        cannon.addEventListener('mousedown', (e) => {
+        // Mouse/Touch Down on game area (for firing and initiating drag)
+        gameArea.addEventListener('mousedown', (e) => {
             if (!gameRunning || gamePaused) return;
-            isDraggingCannon = true;
-            cannon.style.cursor = 'grabbing';
-            initialCannonX = cannon.offsetLeft;
-            initialClientX = e.clientX;
+
+            // If click is on cannon, initiate drag
+            if (e.target === cannon || cannon.contains(e.target)) {
+                isDraggingCannon = true;
+                cannon.style.cursor = 'grabbing';
+                initialCannonX = cannon.offsetLeft;
+                initialClientX = e.clientX;
+            } else { // Otherwise, fire
+                startContinuousFire();
+            }
         });
 
-        cannon.addEventListener('touchstart', (e) => {
+        gameArea.addEventListener('touchstart', (e) => {
             if (!gameRunning || gamePaused || e.touches.length === 0) return;
-            e.preventDefault(); // Prevent default browser touch actions (scrolling)
-            isDraggingCannon = true;
-            initialCannonX = cannon.offsetLeft;
-            initialClientX = e.touches[0].clientX;
-        }, { passive: false }); // Needs passive: false to allow preventDefault
+            e.preventDefault(); // Prevent default browser touch actions (scrolling, zooming)
 
-        // Listener for mouse/touch move on the entire gameArea to allow drag
+            // If touch starts on cannon, initiate drag
+            if (e.target === cannon || cannon.contains(e.target)) {
+                isDraggingCannon = true;
+                initialCannonX = cannon.offsetLeft;
+                initialClientX = e.touches[0].clientX;
+            } else { // Otherwise, fire
+                startContinuousFire();
+            }
+        }, { passive: false });
+
+
+        // Mouse/Touch Move on the entire gameArea to allow drag
         gameArea.addEventListener('mousemove', (e) => {
             if (isDraggingCannon && gameRunning && !gamePaused) {
                 const dx = e.clientX - initialClientX;
@@ -678,24 +923,16 @@
             }
         }, { passive: false });
 
-        // Listen for mouse up and touch end anywhere on the document (or gameArea)
+        // Mouse/Touch Up to stop continuous fire and drag
         document.addEventListener('mouseup', () => {
             isDraggingCannon = false;
             cannon.style.cursor = 'grab';
+            stopContinuousFire();
         });
 
         document.addEventListener('touchend', () => {
             isDraggingCannon = false;
-        });
-
-        // Tapping/Clicking the gameArea to fire
-        gameArea.addEventListener('click', (e) => {
-            if (!gameRunning || gamePaused) return;
-
-            // Check if the click/tap was *not* on the cannon (i.e., it was a fire action)
-            if (e.target !== cannon && !cannon.contains(e.target)) {
-                fireCannon();
-            }
+            stopContinuousFire();
         });
 
         // Pause Button
