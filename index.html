@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Red Balloon Blaster</title>
     <style>
         /* --- CSS Styling (style.css content) --- */
@@ -16,6 +16,11 @@
             background-color: #222;
             color: #eee;
             overflow: hidden; /* Prevent scrollbars */
+            -webkit-user-select: none; /* Disable text selection for better game feel */
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: manipulation; /* Allow taps to pass through, but prevent double tap zoom */
         }
 
         #game-container {
@@ -65,8 +70,7 @@
         #start-screen button,
         #pause-screen button,
         #level-complete-screen button,
-        #game-over-screen button,
-        #controls button {
+        #game-over-screen button { /* Controls button is separate */
             padding: 10px 20px;
             margin: 10px;
             font-size: 1.2em;
@@ -81,8 +85,7 @@
         #start-screen button:hover,
         #pause-screen button:hover,
         #level-complete-screen button:hover,
-        #game-over-screen button:hover,
-        #controls button:hover {
+        #game-over-screen button:hover {
             background-color: #0056b3;
         }
 
@@ -115,6 +118,8 @@
             overflow: hidden; /* Crucial for balloons not escaping */
             background-color: #666; /* Background for where balloons fall */
             border-radius: 5px;
+            cursor: pointer; /* Indicates it's clickable */
+            touch-action: none; /* Prevent browser touch actions like scrolling/zooming */
         }
 
         #cannon {
@@ -150,26 +155,39 @@
             border-radius: 5px;
         }
 
+        #controls button { /* Specific style for pause button */
+            padding: 10px 20px;
+            margin: 0 10px; /* Adjust margin */
+            font-size: 1.2em;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        #controls button:hover {
+            background-color: #0056b3;
+        }
 
-        /* Balloons - using pseudo-elements for heart shape */
+
+        /* Balloons - heart shape */
         .balloon {
             position: absolute;
-            width: 50px;
-            height: 50px;
+            width: 30px; /* Smaller balloon size */
+            height: 30px; /* Smaller balloon size */
             animation: fall linear forwards; /* Controlled by JS */
             opacity: 1;
-            transition: opacity 0.2s ease-out; /* For popping animation */
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out; /* For popping animation */
             z-index: 2;
         }
 
         .balloon.popped {
             opacity: 0;
             transform: scale(0); /* Shrink on pop */
-            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
         }
 
-
-        /* Heart shape using ::before and ::after */
+        /* Improved Heart Shape */
         .balloon::before,
         .balloon::after {
             content: '';
@@ -178,19 +196,26 @@
             height: 100%;
             background-color: inherit; /* Inherit color from parent .balloon */
             border-radius: 50%;
-            left: 0;
-            top: 0;
         }
 
         .balloon::before {
-            transform: rotate(-45deg) translate(-50%, 0);
-            transform-origin: 0 100%;
+            left: -50%; /* Shift left to overlap for heart top left lobe */
+            transform: translateY(-50%); /* Move up */
         }
 
         .balloon::after {
-            transform: rotate(45deg) translate(50%, 0);
-            transform-origin: 100% 100%;
+            left: 50%; /* Shift right for heart top right lobe */
+            transform: translateY(-50%); /* Move up */
         }
+
+        /* Combined main shape for the bottom V */
+        .balloon {
+            transform: rotate(-45deg); /* Rotate the main square to form the diamond */
+            transform-origin: center center;
+            /* Adjust positioning slightly to center the rotated shape */
+            /* This will be handled by JS for top/left positioning */
+        }
+
 
         /* Specific balloon colors */
         .balloon.red { background-color: #ff0000; }
@@ -208,13 +233,13 @@
             background-color: #fff; /* White cannonball */
             border-radius: 50%;
             z-index: 4;
-            transition: transform linear; /* For smooth movement */
+            transition: transform linear; /* For smooth movement, handled by JS */
         }
 
         /* Animations */
         @keyframes fall {
-            from { transform: translateY(-100px); } /* Start slightly above game area */
-            to { transform: translateY(calc(100% + 50px)); } /* Fall past bottom */
+            from { transform: translateY(-100px) rotate(-45deg); } /* Start slightly above game area, keep heart rotation */
+            to { transform: translateY(calc(100% + 50px)) rotate(-45deg); } /* Fall past bottom, keep heart rotation */
         }
 
         @keyframes fire-animation {
@@ -249,8 +274,7 @@
             </div>
             <div id="controls">
                 <button id="pauseButton">Pause</button>
-                <button id="fireButton">Fire</button>
-            </div>
+                </div>
         </div>
 
         <div id="pause-screen" class="game-screen hidden">
@@ -281,7 +305,6 @@
         let level = 1;
         let gameRunning = false;
         let gamePaused = false;
-        let cannonPosition = 0; // Relative to game-area width
         let gameLoopInterval;
         let balloonGenerationInterval;
         const balloonsOnScreen = []; // Array to hold active balloon elements
@@ -304,7 +327,7 @@
         const gameArea = document.getElementById('game-area');
         const cannon = document.getElementById('cannon');
         const pauseButton = document.getElementById('pauseButton');
-        const fireButton = document.getElementById('fireButton');
+        // const fireButton = document.getElementById('fireButton'); // Removed, now tap gameArea
 
         const continueButton = document.getElementById('continueButton');
         const restartButtonPause = document.getElementById('restartButtonPause');
@@ -318,18 +341,16 @@
 
         // --- Game Settings (Adjust for difficulty) ---
         const LEVEL_SETTINGS = {
-            1: { balloonSpeed: 1.5, generationRate: 1500, nonRedChance: 0.2 },
-            2: { balloonSpeed: 2.0, generationRate: 1200, nonRedChance: 0.3 },
-            3: { balloonSpeed: 2.5, generationRate: 1000, nonRedChance: 0.4 },
-            4: { balloonSpeed: 3.0, generationRate: 800, nonRedChance: 0.5 },
-            5: { balloonSpeed: 3.5, generationRate: 600, nonRedChance: 0.6 }
+            1: { balloonSpeed: 1.5, generationRate: 1500, nonRedChance: 0.2, balloonsToShoot: 10 },
+            2: { balloonSpeed: 2.0, generationRate: 1200, nonRedChance: 0.3, balloonsToShoot: 12 },
+            3: { balloonSpeed: 2.5, generationRate: 1000, nonRedChance: 0.4, balloonsToShoot: 15 },
+            4: { balloonSpeed: 3.0, generationRate: 800, nonRedChance: 0.5, balloonsToShoot: 18 },
+            5: { balloonSpeed: 3.5, generationRate: 600, nonRedChance: 0.6, balloonsToShoot: 20 }
         };
-        const CANNON_SPEED = 5; // Pixels per frame (not directly used with drag but good to have)
-        const BALLOON_SIZE = 50; // px
+        const BALLOON_SIZE = 30; // px (Reduced size)
         const CANNONBALL_SPEED = 10; // Pixels per frame
         const SCORE_PER_RED_BALLOON = 10;
         const MAX_LEVEL = 5;
-        const BALLOONS_PER_LEVEL = 10; // Number of red balloons to shoot to complete level
 
         let redBalloonsShotInLevel = 0;
 
@@ -366,11 +387,9 @@
             level = 1;
             redBalloonsShotInLevel = 0;
             balloonsOnScreen.length = 0; // Clear any existing balloons
-            gameArea.innerHTML = ''; // Clear existing balloons and cannonball
+            gameArea.innerHTML = ''; // Clear existing balloons and cannonballs
             gameArea.appendChild(cannon); // Re-add cannon to game area
             cannon.style.left = `${gameArea.offsetWidth / 2 - cannon.offsetWidth / 2}px`; // Reset cannon position
-            cannonPosition = gameArea.offsetWidth / 2 - cannon.offsetWidth / 2;
-
 
             showScreen(gamePlayScreen);
             gameRunning = true;
@@ -387,8 +406,7 @@
 
             const currentSettings = LEVEL_SETTINGS[level];
             if (!currentSettings) {
-                // This means all levels completed or an error
-                endGame(true); // Treat as a win
+                endGame(true); // Treat as a win if somehow tried to start a level beyond MAX_LEVEL
                 return;
             }
 
@@ -431,7 +449,6 @@
             gameArea.appendChild(cannon); // Ensure cannon is back for next game
 
             if (win) {
-                showScreen(levelCompleteScreen);
                 if (level > MAX_LEVEL) { // All levels truly completed
                     levelCompleteMessage.textContent = "You Win! All Levels Complete!";
                     levelCompletePlayerName.textContent = playerName;
@@ -443,6 +460,7 @@
                     nextLevelButton.textContent = "Next Level";
                     nextLevelButton.onclick = nextLevel; // Set to advance to next level
                 }
+                showScreen(levelCompleteScreen);
 
             } else {
                 finalScoreDisplay.textContent = score;
@@ -472,7 +490,7 @@
                 let currentTop = parseFloat(balloon.style.top);
                 balloon.style.top = `${currentTop + currentSettings.balloonSpeed}px`;
 
-                // Check if balloon went off screen
+                // Check if balloon went off screen (missed)
                 if (currentTop > gameArea.offsetHeight) {
                     if (balloon.dataset.color === 'red' && !balloon.dataset.popped) {
                         lives--;
@@ -493,10 +511,10 @@
             cannonball.style.bottom = `${currentBottom + CANNONBALL_SPEED}px`;
 
             // Check collision with balloons
-            // Iterate backwards when removing elements from an array
             for (let i = balloonsOnScreen.length - 1; i >= 0; i--) {
                 const balloon = balloonsOnScreen[i];
-                if (balloon.dataset.popped || !document.body.contains(balloon)) continue; // Skip already popped or removed balloons
+                // Check if balloon is still in the DOM and not already popped
+                if (balloon.dataset.popped || !gameArea.contains(balloon)) continue;
 
                 const balloonRect = balloon.getBoundingClientRect();
                 const cannonballRect = cannonball.getBoundingClientRect();
@@ -518,26 +536,17 @@
                         balloon.dataset.popped = 'true'; // Mark as popped
                         // Remove balloon from DOM after animation
                         setTimeout(() => {
-                            if (document.body.contains(balloon)) {
+                            if (gameArea.contains(balloon)) {
                                 balloon.remove();
                             }
-                            // Also remove from the array
-                            const balloonIndex = balloonsOnScreen.indexOf(balloon);
-                            if (balloonIndex > -1) {
-                                balloonsOnScreen.splice(balloonIndex, 1);
-                            }
-                        }, 200);
+                        }, 200); // Wait for CSS transition
                     } else {
                         lives--; // Lose a life for shooting wrong color
                         balloon.classList.add('popped');
                         balloon.dataset.popped = 'true';
                         setTimeout(() => {
-                             if (document.body.contains(balloon)) {
+                            if (gameArea.contains(balloon)) {
                                 balloon.remove();
-                            }
-                            const balloonIndex = balloonsOnScreen.indexOf(balloon);
-                            if (balloonIndex > -1) {
-                                balloonsOnScreen.splice(balloonIndex, 1);
                             }
                         }, 200);
                     }
@@ -573,22 +582,24 @@
         }
 
         function checkLevelCompletion() {
-            if (level < MAX_LEVEL && redBalloonsShotInLevel >= BALLOONS_PER_LEVEL) {
+            const currentSettings = LEVEL_SETTINGS[level];
+            if (redBalloonsShotInLevel >= currentSettings.balloonsToShoot) {
                 gameRunning = false;
                 clearInterval(balloonGenerationInterval);
                 cancelAnimationFrame(gameLoopInterval); // Stop game loop
 
-                showScreen(levelCompleteScreen);
-            } else if (level === MAX_LEVEL && redBalloonsShotInLevel >= BALLOONS_PER_LEVEL) {
-                // All levels completed
-                endGame(true); // Player wins
+                if (level < MAX_LEVEL) {
+                    showScreen(levelCompleteScreen);
+                } else {
+                    endGame(true); // All levels completed, you win!
+                }
             }
         }
 
         function nextLevel() {
             level++;
-            if (level > MAX_LEVEL) {
-                endGame(true); // Should not happen if checkLevelCompletion works, but as a fallback
+            if (level > MAX_LEVEL) { // Should be caught by checkLevelCompletion, but good fallback
+                endGame(true);
                 return;
             }
             showScreen(gamePlayScreen);
@@ -605,7 +616,6 @@
             moveBalloons();
 
             // Move all active cannonballs
-            // Get a fresh list of cannonballs in each frame
             gameArea.querySelectorAll('.cannonball').forEach(cb => {
                 moveCannonball(cb);
             });
@@ -621,25 +631,32 @@
             if (e.key === 'Enter') startGame();
         });
 
-        // Game Play Screen
-        pauseButton.addEventListener('click', pauseGame);
-        fireButton.addEventListener('click', fireCannon);
-
-        // Cannon movement (click/touch and drag)
+        // Game Play Screen - Tap to Fire & Cannon Drag
         let isDraggingCannon = false;
         let initialCannonX;
-        let initialMouseX;
+        let initialClientX; // Can be mouseX or touchX
 
+        // Listener for both mouse down and touch start on the cannon itself
         cannon.addEventListener('mousedown', (e) => {
+            if (!gameRunning || gamePaused) return;
             isDraggingCannon = true;
             cannon.style.cursor = 'grabbing';
             initialCannonX = cannon.offsetLeft;
-            initialMouseX = e.clientX;
+            initialClientX = e.clientX;
         });
 
+        cannon.addEventListener('touchstart', (e) => {
+            if (!gameRunning || gamePaused || e.touches.length === 0) return;
+            e.preventDefault(); // Prevent default browser touch actions (scrolling)
+            isDraggingCannon = true;
+            initialCannonX = cannon.offsetLeft;
+            initialClientX = e.touches[0].clientX;
+        }, { passive: false }); // Needs passive: false to allow preventDefault
+
+        // Listener for mouse/touch move on the entire gameArea to allow drag
         gameArea.addEventListener('mousemove', (e) => {
             if (isDraggingCannon && gameRunning && !gamePaused) {
-                const dx = e.clientX - initialMouseX;
+                const dx = e.clientX - initialClientX;
                 let newX = initialCannonX + dx;
 
                 // Constrain cannon to game area boundaries
@@ -649,23 +666,10 @@
             }
         });
 
-        gameArea.addEventListener('mouseup', () => {
-            isDraggingCannon = false;
-            cannon.style.cursor = 'grab';
-        });
-
-        // For touch devices
-        cannon.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent scrolling
-            isDraggingCannon = true;
-            initialCannonX = cannon.offsetLeft;
-            initialTouchX = e.touches[0].clientX;
-        }, { passive: false }); // Use { passive: false } to allow preventDefault
-
         gameArea.addEventListener('touchmove', (e) => {
             if (isDraggingCannon && gameRunning && !gamePaused && e.touches.length > 0) {
-                e.preventDefault(); // Prevent scrolling
-                const dx = e.touches[0].clientX - initialTouchX;
+                e.preventDefault(); // Prevent default browser touch actions (scrolling)
+                const dx = e.touches[0].clientX - initialClientX;
                 let newX = initialCannonX + dx;
 
                 if (newX < 0) newX = 0;
@@ -674,10 +678,28 @@
             }
         }, { passive: false });
 
-        gameArea.addEventListener('touchend', () => {
+        // Listen for mouse up and touch end anywhere on the document (or gameArea)
+        document.addEventListener('mouseup', () => {
+            isDraggingCannon = false;
+            cannon.style.cursor = 'grab';
+        });
+
+        document.addEventListener('touchend', () => {
             isDraggingCannon = false;
         });
 
+        // Tapping/Clicking the gameArea to fire
+        gameArea.addEventListener('click', (e) => {
+            if (!gameRunning || gamePaused) return;
+
+            // Check if the click/tap was *not* on the cannon (i.e., it was a fire action)
+            if (e.target !== cannon && !cannon.contains(e.target)) {
+                fireCannon();
+            }
+        });
+
+        // Pause Button
+        pauseButton.addEventListener('click', pauseGame);
 
         // Pause Screen
         continueButton.addEventListener('click', continueGame);
