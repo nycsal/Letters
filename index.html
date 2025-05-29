@@ -1,195 +1,311 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Snake Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Volleyball</title>
     <style>
         body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            background-color: #333;
-            margin: 0;
+            height: 100vh;
             font-family: Arial, sans-serif;
-            color: #eee;
-            flex-direction: column;
         }
-        canvas {
-            background-color: #000;
-            border: 2px solid #fff;
-            display: block;
+
+        #game-container {
+            width: 100%;
+            max-width: 800px; /* Adjust as needed */
+            aspect-ratio: 16 / 9; /* Typical landscape aspect ratio */
+            background-color: #a0d0a0; /* Green court */
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
         }
-        #game-controls {
-            margin-top: 20px;
-            text-align: center;
+
+        #net {
+            position: absolute;
+            width: 10px;
+            height: 80%; /* Adjust net height */
+            background-color: #333;
+            left: 50%;
+            top: 10%;
+            transform: translateX(-50%);
+            z-index: 10;
         }
-        button {
-            padding: 10px 20px;
-            font-size: 1.2em;
-            cursor: pointer;
-            background-color: #4CAF50;
+
+        .player {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: #ff6347; /* Team 1 color */
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             color: white;
-            border: none;
-            border-radius: 5px;
-            margin: 5px;
+            font-weight: bold;
+            user-select: none; /* Prevent text selection on touch */
+            touch-action: none; /* Prevent default touch actions like scrolling */
+            z-index: 5;
+            transition: transform 0.1s ease-out; /* Smooth player movement (basic) */
         }
-        button:hover {
-            background-color: #45a049;
+
+        .player.team2 {
+            background-color: #4169e1; /* Team 2 color */
         }
-        #score {
-            font-size: 1.5em;
-            margin-bottom: 10px;
+
+        #ball {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #fdfd96; /* Yellow ball */
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            z-index: 20;
+            transition: transform 0.05s linear; /* Smooth ball movement (basic) */
         }
-        #game-over {
-            font-size: 2em;
-            color: red;
-            margin-top: 10px;
-            display: none; /* Hidden by default */
+
+        /* Basic debug info - remove in final game */
+        #debug-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            padding: 5px;
+            font-size: 12px;
+            z-index: 100;
         }
     </style>
 </head>
 <body>
-    <h1>Snake Game</h1>
-    <div id="score">Score: 0</div>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    <div id="game-controls">
-        <button id="startButton">Start Game</button>
-        <div id="game-over">Game Over!</div>
+    <div id="game-container">
+        <div id="net"></div>
+
+        <div class="player" id="player1_1" style="left: 10%; top: 70%;">1</div>
+        <div class="player" id="player1_2" style="left: 25%; top: 70%;">2</div>
+        <div class="player" id="player1_3" style="left: 10%; top: 85%;">3</div>
+        <div class="player" id="player1_4" style="left: 25%; top: 85%;">4</div>
+
+        <div class="player team2" id="player2_1" style="left: 70%; top: 10%;">A</div>
+        <div class="player team2" id="player2_2" style="left: 85%; top: 10%;">B</div>
+        <div class="player team2" id="player2_3" style="left: 70%; top: 25%;">C</div>
+        <div class="player team2" id="player2_4" style="left: 85%; top: 25%;">D</div>
+
+        <div id="ball"></div>
+
+        <div id="debug-info"></div>
     </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score');
-        const startButton = document.getElementById('startButton');
-        const gameOverDisplay = document.getElementById('game-over');
+        const gameContainer = document.getElementById('game-container');
+        const ball = document.getElementById('ball');
+        const players = document.querySelectorAll('.player');
+        const debugInfo = document.getElementById('debug-info');
 
-        const gridSize = 20; // Size of each segment of the snake and food
-        let snake = [{ x: 10, y: 10 }]; // Initial snake position (head at 10,10)
-        let food = {};
-        let dx = 0; // x-direction velocity
-        let dy = 0; // y-direction velocity
-        let score = 0;
-        let gameInterval;
-        let gameRunning = false;
-        let changingDirection = false;
+        let isServing = false;
+        let activePlayer = null; // The player currently "holding" or about to serve the ball
+        let ballInPlay = false;
+        let ballPosition = { x: 0, y: 0 };
+        let ballVelocity = { x: 0, y: 0 };
+        const gravity = 0.5; // Simulate gravity
+        const bounceFactor = 0.7; // How much bounce when hitting ground/net
 
-        function generateFood() {
-            food = {
-                x: Math.floor(Math.random() * (canvas.width / gridSize)),
-                y: Math.floor(Math.random() * (canvas.height / gridSize))
-            };
+        // --- Game Setup ---
+        function initializeGame() {
+            // Set initial ball position (e.g., near player 1 for serving)
+            resetBallPosition();
         }
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+        function resetBallPosition() {
+            const player1_1 = document.getElementById('player1_1');
+            const player1_1Rect = player1_1.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
 
-            // Draw snake
-            ctx.fillStyle = 'lime';
-            snake.forEach(segment => {
-                ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-            });
-
-            // Draw food
-            ctx.fillStyle = 'red';
-            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+            ballPosition.x = (player1_1Rect.left + player1_1Rect.width / 2) - containerRect.left;
+            ballPosition.y = (player1_1Rect.top - 20) - containerRect.top; // Slightly above player
+            ballVelocity = { x: 0, y: 0 };
+            updateBallPosition();
+            isServing = true; // Player 1 starts with the serve
+            ballInPlay = false;
         }
 
-        function update() {
-            if (!gameRunning) return;
+        function updateBallPosition() {
+            ball.style.left = `${ballPosition.x}px`;
+            ball.style.top = `${ballPosition.y}px`;
+        }
 
-            changingDirection = false; // Allow direction change after update
+        // --- Touch Controls (Conceptual) ---
+        gameContainer.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent default browser touch behavior (e.g., scrolling)
 
-            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            const touch = e.touches[0];
+            const touchX = touch.clientX;
+            const touchY = touch.clientY;
 
-            // Check for collision with walls
-            if (head.x < 0 || head.x >= canvas.width / gridSize ||
-                head.y < 0 || head.y >= canvas.height / gridSize) {
-                endGame();
-                return;
-            }
+            // Debug info
+            debugInfo.textContent = `Touch: X=${touchX.toFixed(0)}, Y=${touchY.toFixed(0)}`;
 
-            // Check for collision with self
-            for (let i = 1; i < snake.length; i++) {
-                if (head.x === snake[i].x && head.y === snake[i].y) {
-                    endGame();
-                    return;
+            // Check if a player was touched
+            players.forEach(player => {
+                const rect = player.getBoundingClientRect();
+                if (
+                    touchX >= rect.left &&
+                    touchX <= rect.right &&
+                    touchY >= rect.top &&
+                    touchY <= rect.bottom
+                ) {
+                    activePlayer = player;
+                    debugInfo.textContent += ` - Player touched: ${player.id}`;
+
+                    if (isServing && player.id.startsWith('player1')) {
+                        // This player is serving
+                        // Conceptual: A small tap serves the ball up
+                        serveBall(player);
+                        isServing = false;
+                        ballInPlay = true;
+                    } else if (ballInPlay && player.id.startsWith('player1')) {
+                        // This player is trying to hit/pass the ball
+                        // Conceptual: Tap player to hit ball towards net/opponent
+                        hitBall(player);
+                    }
                 }
-            }
+            });
+        });
 
-            snake.unshift(head); // Add new head
+        // --- Game Logic (Simplified) ---
 
-            // Check if food was eaten
-            if (head.x === food.x && head.y === food.y) {
-                score++;
-                scoreDisplay.textContent = 'Score: ' + score;
-                generateFood(); // Generate new food
-            } else {
-                snake.pop(); // Remove tail if no food eaten
-            }
+        function serveBall(servingPlayer) {
+            // A very simple serve: just gives the ball an upward and forward velocity
+            // This needs significant refinement for actual physics
+            const playerRect = servingPlayer.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
 
-            draw();
+            ballPosition.x = (playerRect.left + playerRect.width / 2) - containerRect.left;
+            ballPosition.y = (playerRect.top - 50) - containerRect.top; // Start higher
+
+            ballVelocity.x = (Math.random() - 0.5) * 5; // Slight random horizontal
+            ballVelocity.y = -15; // Upward velocity for serve
+
+            updateBallPosition();
         }
 
-        function changeDirection(event) {
-            if (changingDirection) return;
-            changingDirection = true;
+        function hitBall(hittingPlayer) {
+            // A very simple hit: gives the ball a push towards the opponent's side
+            // This also needs complex physics for angle, power based on touch
+            const playerRect = hittingPlayer.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
+            const netX = gameContainer.offsetWidth / 2;
 
-            const keyPressed = event.keyCode;
-            const goingUp = dy === -1;
-            const goingDown = dy === 1;
-            const goingLeft = dx === -1;
-            const goingRight = dx === 1;
+            // Determine if hitting from left or right side
+            const direction = (playerRect.left + playerRect.width / 2) < netX ? 1 : -1;
 
-            if (keyPressed === 37 && !goingRight) { // Left arrow
-                dx = -1;
-                dy = 0;
-            }
-            if (keyPressed === 38 && !goingDown) { // Up arrow
-                dx = 0;
-                dy = -1;
-            }
-            if (keyPressed === 39 && !goingLeft) { // Right arrow
-                dx = 1;
-                dy = 0;
-            }
-            if (keyPressed === 40 && !goingUp) { // Down arrow
-                dx = 0;
-                dy = 1;
-            }
+            ballVelocity.x = 10 * direction; // Push horizontally
+            ballVelocity.y = -8; // Push slightly upwards
         }
 
-        function startGame() {
-            gameRunning = true;
-            score = 0;
-            scoreDisplay.textContent = 'Score: 0';
-            snake = [{ x: 10, y: 10 }];
-            dx = 0;
-            dy = 0;
-            gameOverDisplay.style.display = 'none';
-            startButton.textContent = 'Restart Game'; // Change button text
+        function gameLoop() {
+            if (ballInPlay) {
+                // Apply gravity
+                ballVelocity.y += gravity;
 
-            generateFood();
-            draw();
+                // Update ball position
+                ballPosition.x += ballVelocity.x;
+                ballPosition.y += ballVelocity.y;
 
-            if (gameInterval) clearInterval(gameInterval); // Clear any existing interval
-            gameInterval = setInterval(update, 150); // Game speed
+                // --- Collision Detection (Very Basic) ---
+
+                // Floor collision
+                const floorY = gameContainer.offsetHeight - ball.offsetHeight;
+                if (ballPosition.y >= floorY) {
+                    ballPosition.y = floorY;
+                    ballVelocity.y *= -bounceFactor; // Bounce
+                    if (Math.abs(ballVelocity.y) < 1) { // Stop if nearly still
+                        ballVelocity.y = 0;
+                        ballInPlay = false; // Ball hit ground, point ends
+                        debugInfo.textContent = "Ball hit ground! Point over.";
+                        setTimeout(resetBallPosition, 2000); // Reset after 2 seconds
+                    }
+                }
+
+                // Ceiling collision
+                if (ballPosition.y <= 0) {
+                    ballPosition.y = 0;
+                    ballVelocity.y *= -bounceFactor;
+                }
+
+                // Wall collision
+                const rightWallX = gameContainer.offsetWidth - ball.offsetWidth;
+                if (ballPosition.x <= 0 || ballPosition.x >= rightWallX) {
+                    ballPosition.x = Math.max(0, Math.min(ballPosition.x, rightWallX));
+                    ballVelocity.x *= -bounceFactor;
+                }
+
+                // Net collision (simplified)
+                const netElement = document.getElementById('net');
+                const netRect = netElement.getBoundingClientRect();
+                const containerRect = gameContainer.getBoundingClientRect();
+
+                const netLeft = netRect.left - containerRect.left;
+                const netRight = netRect.right - containerRect.left;
+                const netTop = netRect.top - containerRect.top;
+                const netBottom = netRect.bottom - containerRect.top;
+
+
+                // Check if ball is overlapping with net horizontally and vertically
+                if (
+                    ballPosition.x + ball.offsetWidth > netLeft &&
+                    ballPosition.x < netRight &&
+                    ballPosition.y + ball.offsetHeight > netTop &&
+                    ballPosition.y < netBottom
+                ) {
+                    // Ball hit net
+                    ballVelocity.x *= -0.5; // Lose some horizontal speed
+                    ballVelocity.y = Math.abs(ballVelocity.y) * 0.5; // Reduce vertical speed and bounce up
+                    debugInfo.textContent = "Ball hit net!";
+                }
+
+                // Player collision (very simple - needs bounding box/circle logic)
+                players.forEach(player => {
+                    const playerRect = player.getBoundingClientRect();
+                    const playerCenterX = (playerRect.left - containerRect.left) + playerRect.width / 2;
+                    const playerCenterY = (playerRect.top - containerRect.top) + playerRect.height / 2;
+
+                    const ballCenterX = ballPosition.x + ball.offsetWidth / 2;
+                    const ballCenterY = ballPosition.y + ball.offsetHeight / 2;
+
+                    const distance = Math.sqrt(
+                        Math.pow(ballCenterX - playerCenterX, 2) +
+                        Math.pow(ballCenterY - playerCenterY, 2)
+                    );
+
+                    const collisionDistance = (player.offsetWidth / 2) + (ball.offsetWidth / 2);
+
+                    if (distance < collisionDistance && ballInPlay) {
+                        // This is a very rough "hit" - needs proper physics
+                        // For a real game, this would be where you calculate reflection angles
+                        // and potentially apply force based on player movement/tap strength.
+                        // For now, just a slight bounce and change of direction.
+                        ballVelocity.y = -Math.abs(ballVelocity.y) * 0.8; // Bounce up
+                        ballVelocity.x = (ballCenterX - playerCenterX) * 0.1; // Push away from player
+                        debugInfo.textContent = `Ball hit ${player.id}`;
+                    }
+                });
+
+                updateBallPosition();
+            }
+
+            requestAnimationFrame(gameLoop);
         }
 
-        function endGame() {
-            gameRunning = false;
-            clearInterval(gameInterval);
-            gameOverDisplay.style.display = 'block';
-            startButton.textContent = 'Start New Game'; // Reset button text
-        }
+        initializeGame();
+        gameLoop();
 
-        // Event listeners
-        document.addEventListener('keydown', changeDirection);
-        startButton.addEventListener('click', startGame);
-
-        // Initial setup
-        generateFood();
-        draw();
     </script>
 </body>
 </html>
