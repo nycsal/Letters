@@ -1,311 +1,642 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile Volleyball</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #f0f0f0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-        }
-
-        #game-container {
-            width: 100%;
-            max-width: 800px; /* Adjust as needed */
-            aspect-ratio: 16 / 9; /* Typical landscape aspect ratio */
-            background-color: #a0d0a0; /* Green court */
-            position: relative;
-            overflow: hidden;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
-        }
-
-        #net {
-            position: absolute;
-            width: 10px;
-            height: 80%; /* Adjust net height */
-            background-color: #333;
-            left: 50%;
-            top: 10%;
-            transform: translateX(-50%);
-            z-index: 10;
-        }
-
-        .player {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            background-color: #ff6347; /* Team 1 color */
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            user-select: none; /* Prevent text selection on touch */
-            touch-action: none; /* Prevent default touch actions like scrolling */
-            z-index: 5;
-            transition: transform 0.1s ease-out; /* Smooth player movement (basic) */
-        }
-
-        .player.team2 {
-            background-color: #4169e1; /* Team 2 color */
-        }
-
-        #ball {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background-color: #fdfd96; /* Yellow ball */
-            border-radius: 50%;
-            box-shadow: 0 0 5px rgba(0,0,0,0.3);
-            z-index: 20;
-            transition: transform 0.05s linear; /* Smooth ball movement (basic) */
-        }
-
-        /* Basic debug info - remove in final game */
-        #debug-info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background-color: rgba(0,0,0,0.5);
-            color: white;
-            padding: 5px;
-            font-size: 12px;
-            z-index: 100;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>KakaReza - Explosive Space Shooter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #05081c;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #scoreboard {
+      width: 100vw;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 12px 0 8px 0;
+      background: rgba(10,10,30,0.95);
+      text-align: center;
+      font-size: 5vw;
+      letter-spacing: 2px;
+      z-index: 3;
+      border-bottom: 2px solid #333;
+      user-select: none;
+      box-sizing: border-box;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+    }
+    #branding {
+      font-size: 6vw;
+      font-weight: bold;
+      color: #00eaff;
+      letter-spacing: 4px;
+      text-shadow: 1px 2px 6px #0ff9;
+    }
+    .score-label { color: #ffd700; }
+    .time-label  { color: #00ff7f; }
+    .level-label { color: #00eaff; }
+    .lives-label { color: #ff4a4a; }
+    #gameContainer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      max-width: 800px;
+      margin: 0 auto;
+      user-select: none;
+      touch-action: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      pointer-events: none;
+    }
+    #gameCanvas {
+      display: block;
+      position: absolute;
+      left: 0;
+      top: 0;
+      margin: 0 auto;
+      width: 100vw;
+      max-width: 800px;
+      background: transparent;
+      pointer-events: auto;
+    }
+    #gameOver, #levelComplete {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(20,30,50,0.95);
+      padding: 30px 60px;
+      border-radius: 16px;
+      font-size: 6vw;
+      color: #fff;
+      text-align: center;
+      z-index: 10;
+      box-shadow: 0 0 30px #000a;
+      display: none;
+      pointer-events: auto;
+    }
+    #gameOver button, #levelComplete button {
+      margin-top: 18px;
+      font-size: 4vw;
+      padding: 8px 28px;
+      background: #00eaff;
+      color: #0a0a1a;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    #gameOver button:hover, #levelComplete button:hover {
+      background: #00b3cc;
+    }
+    @media (max-width: 600px) {
+      #scoreboard {
+        font-size: 4vw;
+      }
+      #branding {
+        font-size: 5vw;
+      }
+      #gameOver, #levelComplete {
+        font-size: 5vw;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="net"></div>
-
-        <div class="player" id="player1_1" style="left: 10%; top: 70%;">1</div>
-        <div class="player" id="player1_2" style="left: 25%; top: 70%;">2</div>
-        <div class="player" id="player1_3" style="left: 10%; top: 85%;">3</div>
-        <div class="player" id="player1_4" style="left: 25%; top: 85%;">4</div>
-
-        <div class="player team2" id="player2_1" style="left: 70%; top: 10%;">A</div>
-        <div class="player team2" id="player2_2" style="left: 85%; top: 10%;">B</div>
-        <div class="player team2" id="player2_3" style="left: 70%; top: 25%;">C</div>
-        <div class="player team2" id="player2_4" style="left: 85%; top: 25%;">D</div>
-
-        <div id="ball"></div>
-
-        <div id="debug-info"></div>
+  <div id="scoreboard">
+    <span id="branding">KakaReza</span> | 
+    <span class="score-label">Score: <span id="score">0</span></span> | 
+    <span class="time-label">Time: <span id="timer">30</span>s</span> | 
+    <span class="level-label">Level: <span id="level">1</span></span> | 
+    <span class="lives-label" id="lives"></span>
+  </div>
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="gameOver">
+      <div id="gameOverText"></div>
+      <button onclick="restartGame()">Restart</button>
     </div>
+    <div id="levelComplete">
+      <div id="levelCompleteText"></div>
+      <button onclick="nextLevel()">Next Level</button>
+    </div>
+  </div>
+<script>
+(function() {
+  // Dynamic background colors for each level
+  const BG_COLORS = [
+    ["#0a1e44", "#0040ff"], // Blue space
+    ["#1a0e00", "#ff7b00"], // Orange
+    ["#1a001a", "#ff00ff"], // Purple
+    ["#0a1e44", "#0040ff"], // Blue again
+    ["#001a0a", "#00ff40"], // Green
+    ["#1a0000", "#ff0000"]  // Red
+  ];
+  
+  function resizeCanvas() {
+    const scoreboard = document.getElementById('scoreboard');
+    const canvas = document.getElementById('gameCanvas');
+    let w = Math.min(window.innerWidth, 800);
+    let h = window.innerHeight - scoreboard.offsetHeight;
+    canvas.width = w;
+    canvas.height = h;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+  }
+  window.addEventListener('resize', resizeCanvas);
 
-    <script>
-        const gameContainer = document.getElementById('game-container');
-        const ball = document.getElementById('ball');
-        const players = document.querySelectorAll('.player');
-        const debugInfo = document.getElementById('debug-info');
+  // Game constants
+  const ENEMY_SPAWN_RATE_BASE = 2.2, ENEMY_SPEED_BASE = 1.8, BULLET_SPEED = 12;
+  const PLAYER_SPEED = 18, PLAYER_WIDTH = 60, PLAYER_HEIGHT = 44;
+  const ENEMY_WIDTH = 44, ENEMY_HEIGHT = 36;
+  const POWERUP_WIDTH = 32, POWERUP_HEIGHT = 32, POWERUP_FALL_SPEED = 2.1;
+  const BOSS_WIDTH = 128, BOSS_HEIGHT = 68, BOSS_BULLET_SPEED = 4.2, BOSS_HP = 150;
+  const LEVEL_TIME = 32, LEVELS = 6, DIFFICULTY_INCREASE = 0.09;
+  const MAX_LIVES = 3;
+  const MAX_SHIELDS = 3;
 
-        let isServing = false;
-        let activePlayer = null; // The player currently "holding" or about to serve the ball
-        let ballInPlay = false;
-        let ballPosition = { x: 0, y: 0 };
-        let ballVelocity = { x: 0, y: 0 };
-        const gravity = 0.5; // Simulate gravity
-        const bounceFactor = 0.7; // How much bounce when hitting ground/net
+  let canvas = document.getElementById('gameCanvas'),
+      ctx = canvas.getContext('2d'),
+      scoreEl = document.getElementById('score'),
+      timerEl = document.getElementById('timer'),
+      levelEl = document.getElementById('level'),
+      livesEl = document.getElementById('lives'),
+      gameOverEl = document.getElementById('gameOver'),
+      gameOverText = document.getElementById('gameOverText'),
+      levelCompleteEl = document.getElementById('levelComplete'),
+      levelCompleteText = document.getElementById('levelCompleteText');
 
-        // --- Game Setup ---
-        function initializeGame() {
-            // Set initial ball position (e.g., near player 1 for serving)
-            resetBallPosition();
-        }
+  let player, bullets, enemies, powerups, boss, bossBullets, explosions, stars, nebulae, bulletTrails, thrusterParticles, hitEffects, screenFlash;
+  let score = 0, level = 1, timer = LEVEL_TIME, objectsShot = 0, lives = MAX_LIVES;
+  let lastEnemySpawn = 0, enemySpawnRate = ENEMY_SPAWN_RATE_BASE, enemySpeed = ENEMY_SPEED_BASE;
+  let fireInterval = 90, lastFire = 0, playerPower = 1, playerPowerTimer = 0;
+  let bossActive = false, bossDefeated = false, lastTime = 0, gameState = 'playing';
+  let dragging = false;
+  let waveIndex = 0, waveTimer = 0;
+  let screenshake = 0, cameraX = 0, cameraY = 0;
+  let pulseTimer = 0;
 
-        function resetBallPosition() {
-            const player1_1 = document.getElementById('player1_1');
-            const player1_1Rect = player1_1.getBoundingClientRect();
-            const containerRect = gameContainer.getBoundingClientRect();
+  // Patterns for enemy waves
+  const wavePatterns = [
+    (i, t, w, h) => ({
+      x: (w-ENEMY_WIDTH) * ((Math.sin(t/400 + i) + 1)/2),
+      y: -ENEMY_HEIGHT - i*60 + (t/2),
+      vx: 0, vy: enemySpeed
+    }),
+    (i, t, w, h) => ({
+      x: (w-ENEMY_WIDTH)/2 + Math.sin(t/300 + i) * (w/3),
+      y: -ENEMY_HEIGHT - i*60 + (t/2),
+      vx: 0, vy: enemySpeed
+    }),
+    (i, t, w, h) => ({
+      x: (w-ENEMY_WIDTH)/2 + (i-2)*60 + Math.sin(t/600)*30,
+      y: -ENEMY_HEIGHT - Math.abs(i-2)*30 + (t/2),
+      vx: 0, vy: enemySpeed
+    }),
+    (i, t, w, h) => ({
+      x: (w-ENEMY_WIDTH)/5*i,
+      y: -ENEMY_HEIGHT - i*55 + (t/2),
+      vx: 0, vy: enemySpeed
+    }),
+  ];
 
-            ballPosition.x = (player1_1Rect.left + player1_1Rect.width / 2) - containerRect.left;
-            ballPosition.y = (player1_1Rect.top - 20) - containerRect.top; // Slightly above player
-            ballVelocity = { x: 0, y: 0 };
-            updateBallPosition();
-            isServing = true; // Player 1 starts with the serve
-            ballInPlay = false;
-        }
+  const enemyTypes = [
+    { color: "#ff5555", shape: "triangle" },
+    { color: "#ffcc00", shape: "circle" },
+    { color: "#00eaff", shape: "diamond" },
+    { color: "#eaff00", shape: "eye" },
+    { color: "#ff00e1", shape: "ufo" },
+  ];
 
-        function updateBallPosition() {
-            ball.style.left = `${ballPosition.x}px`;
-            ball.style.top = `${ballPosition.y}px`;
-        }
-
-        // --- Touch Controls (Conceptual) ---
-        gameContainer.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent default browser touch behavior (e.g., scrolling)
-
-            const touch = e.touches[0];
-            const touchX = touch.clientX;
-            const touchY = touch.clientY;
-
-            // Debug info
-            debugInfo.textContent = `Touch: X=${touchX.toFixed(0)}, Y=${touchY.toFixed(0)}`;
-
-            // Check if a player was touched
-            players.forEach(player => {
-                const rect = player.getBoundingClientRect();
-                if (
-                    touchX >= rect.left &&
-                    touchX <= rect.right &&
-                    touchY >= rect.top &&
-                    touchY <= rect.bottom
-                ) {
-                    activePlayer = player;
-                    debugInfo.textContent += ` - Player touched: ${player.id}`;
-
-                    if (isServing && player.id.startsWith('player1')) {
-                        // This player is serving
-                        // Conceptual: A small tap serves the ball up
-                        serveBall(player);
-                        isServing = false;
-                        ballInPlay = true;
-                    } else if (ballInPlay && player.id.startsWith('player1')) {
-                        // This player is trying to hit/pass the ball
-                        // Conceptual: Tap player to hit ball towards net/opponent
-                        hitBall(player);
-                    }
-                }
-            });
-        });
-
-        // --- Game Logic (Simplified) ---
-
-        function serveBall(servingPlayer) {
-            // A very simple serve: just gives the ball an upward and forward velocity
-            // This needs significant refinement for actual physics
-            const playerRect = servingPlayer.getBoundingClientRect();
-            const containerRect = gameContainer.getBoundingClientRect();
-
-            ballPosition.x = (playerRect.left + playerRect.width / 2) - containerRect.left;
-            ballPosition.y = (playerRect.top - 50) - containerRect.top; // Start higher
-
-            ballVelocity.x = (Math.random() - 0.5) * 5; // Slight random horizontal
-            ballVelocity.y = -15; // Upward velocity for serve
-
-            updateBallPosition();
-        }
-
-        function hitBall(hittingPlayer) {
-            // A very simple hit: gives the ball a push towards the opponent's side
-            // This also needs complex physics for angle, power based on touch
-            const playerRect = hittingPlayer.getBoundingClientRect();
-            const containerRect = gameContainer.getBoundingClientRect();
-            const netX = gameContainer.offsetWidth / 2;
-
-            // Determine if hitting from left or right side
-            const direction = (playerRect.left + playerRect.width / 2) < netX ? 1 : -1;
-
-            ballVelocity.x = 10 * direction; // Push horizontally
-            ballVelocity.y = -8; // Push slightly upwards
-        }
-
-        function gameLoop() {
-            if (ballInPlay) {
-                // Apply gravity
-                ballVelocity.y += gravity;
-
-                // Update ball position
-                ballPosition.x += ballVelocity.x;
-                ballPosition.y += ballVelocity.y;
-
-                // --- Collision Detection (Very Basic) ---
-
-                // Floor collision
-                const floorY = gameContainer.offsetHeight - ball.offsetHeight;
-                if (ballPosition.y >= floorY) {
-                    ballPosition.y = floorY;
-                    ballVelocity.y *= -bounceFactor; // Bounce
-                    if (Math.abs(ballVelocity.y) < 1) { // Stop if nearly still
-                        ballVelocity.y = 0;
-                        ballInPlay = false; // Ball hit ground, point ends
-                        debugInfo.textContent = "Ball hit ground! Point over.";
-                        setTimeout(resetBallPosition, 2000); // Reset after 2 seconds
-                    }
-                }
-
-                // Ceiling collision
-                if (ballPosition.y <= 0) {
-                    ballPosition.y = 0;
-                    ballVelocity.y *= -bounceFactor;
-                }
-
-                // Wall collision
-                const rightWallX = gameContainer.offsetWidth - ball.offsetWidth;
-                if (ballPosition.x <= 0 || ballPosition.x >= rightWallX) {
-                    ballPosition.x = Math.max(0, Math.min(ballPosition.x, rightWallX));
-                    ballVelocity.x *= -bounceFactor;
-                }
-
-                // Net collision (simplified)
-                const netElement = document.getElementById('net');
-                const netRect = netElement.getBoundingClientRect();
-                const containerRect = gameContainer.getBoundingClientRect();
-
-                const netLeft = netRect.left - containerRect.left;
-                const netRight = netRect.right - containerRect.left;
-                const netTop = netRect.top - containerRect.top;
-                const netBottom = netRect.bottom - containerRect.top;
-
-
-                // Check if ball is overlapping with net horizontally and vertically
-                if (
-                    ballPosition.x + ball.offsetWidth > netLeft &&
-                    ballPosition.x < netRight &&
-                    ballPosition.y + ball.offsetHeight > netTop &&
-                    ballPosition.y < netBottom
-                ) {
-                    // Ball hit net
-                    ballVelocity.x *= -0.5; // Lose some horizontal speed
-                    ballVelocity.y = Math.abs(ballVelocity.y) * 0.5; // Reduce vertical speed and bounce up
-                    debugInfo.textContent = "Ball hit net!";
-                }
-
-                // Player collision (very simple - needs bounding box/circle logic)
-                players.forEach(player => {
-                    const playerRect = player.getBoundingClientRect();
-                    const playerCenterX = (playerRect.left - containerRect.left) + playerRect.width / 2;
-                    const playerCenterY = (playerRect.top - containerRect.top) + playerRect.height / 2;
-
-                    const ballCenterX = ballPosition.x + ball.offsetWidth / 2;
-                    const ballCenterY = ballPosition.y + ball.offsetHeight / 2;
-
-                    const distance = Math.sqrt(
-                        Math.pow(ballCenterX - playerCenterX, 2) +
-                        Math.pow(ballCenterY - playerCenterY, 2)
-                    );
-
-                    const collisionDistance = (player.offsetWidth / 2) + (ball.offsetWidth / 2);
-
-                    if (distance < collisionDistance && ballInPlay) {
-                        // This is a very rough "hit" - needs proper physics
-                        // For a real game, this would be where you calculate reflection angles
-                        // and potentially apply force based on player movement/tap strength.
-                        // For now, just a slight bounce and change of direction.
-                        ballVelocity.y = -Math.abs(ballVelocity.y) * 0.8; // Bounce up
-                        ballVelocity.x = (ballCenterX - playerCenterX) * 0.1; // Push away from player
-                        debugInfo.textContent = `Ball hit ${player.id}`;
-                    }
-                });
-
-                updateBallPosition();
-            }
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        initializeGame();
-        gameLoop();
-
-    </script>
-</body>
-</html>
+  function createPlayer() {
+    return {
+      x: canvas.width / 2 - PLAYER_WIDTH / 2,
+      y: canvas.height - PLAYER_HEIGHT - 2,
+      width: PLAYER_WIDTH,
+      height: PLAYER_HEIGHT,
+      power: 1,
+      powerTimer: 0,
+      targetX: null,
+      shields: 0,
+      thrusterTimer: 0
+    };
+  }
+  
+  function createBullet(x, y) {
+    return { x, y, width: 6, height: 14, speed: BULLET_SPEED, trail: [] };
+  }
+  
+  function createEnemy(x, y, hp = 1, hasPowerup = false, isBoss = false, pattern=null, index=0, born=0, typeIndex=0) {
+    return { x, y, width: isBoss ? BOSS_WIDTH : ENEMY_WIDTH, height: isBoss ? BOSS_HEIGHT : ENEMY_HEIGHT, speed: enemySpeed, hp, hasPowerup, isBoss, pattern, index, born, typeIndex, pulse: 0 };
+  }
+  
+  function createPowerup(x, y, type="power") {
+    return { x, y, width: POWERUP_WIDTH, height: POWERUP_HEIGHT, speed: POWERUP_FALL_SPEED, type, glow: 0 };
+  }
+  
+  function createBoss() {
+    return {
+      x: canvas.width / 2 - BOSS_WIDTH / 2,
+      y: 50,
+      width: BOSS_WIDTH,
+      height: BOSS_HEIGHT,
+      hp: BOSS_HP,
+      fireCooldown: 0,
+      fireRate: 950,
+      isBoss: true,
+      typeIndex: 4,
+      vx: 2.3 + Math.random()*1.4,
+      pulse: 0
+    };
+  }
+  
+  function createExplosion(x, y, color="#fff", big=false) {
+    let particles = [];
+    let n = big ? 80 : Math.floor(Math.random()*15+25);
+    for (let i=0; i<n; i++) {
+      let angle = Math.random()*Math.PI*2;
+      let speed = Math.random()*(big?8:5)+(big?4:3);
+      let c = color;
+      if (Math.random()<0.3) c = "#fff";
+      if (Math.random()<0.2) c = "#fffb00";
+      if (Math.random()<0.15) c = "#00eaff";
+      if (big && Math.random()<0.5) c = "#ff00e1";
+      particles.push({
+        x, y,
+        vx: Math.cos(angle)*speed,
+        vy: Math.sin(angle)*speed,
+        radius: Math.random()*(big?18:10)+(big?12:6),
+        alpha: 1,
+        color: c,
+        life: 0,
+        maxLife: big ? 80 : 45,
+        gravity: big ? 0.05 : 0.02
+      });
+    }
+    screenshake = Math.max(screenshake, big ? 35 : 15);
+    screenFlash = big ? 25 : 10;
+    return { particles, alive: true, big: big };
+  }
+  
+  function createStar() {
+    return {
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 2 + 0.5,
+      speed: Math.random() * 1.2 + 0.5,
+      alpha: Math.random() * 0.7 + 0.3,
+      twinkle: Math.random() * Math.PI * 2
+    };
+  }
+  
+  function createNebula() {
+    return {
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height*0.7,
+      r: Math.random()*80+50,
+      color: `rgba(${Math.floor(Math.random()*100+100)},${Math.floor(Math.random()*180+50)},255,0.12)`,
+      dx: Math.random()*0.3-0.15,
+      dy: Math.random()*0.15+0.03,
+      pulse: Math.random() * Math.PI * 2
+    };
+  }
+  
+  function createThrusterParticle(x, y) {
+    return {
+      x: x + Math.random() * 20 - 10,
+      y: y,
+      vx: Math.random() * 2 - 1,
+      vy: Math.random() * 2 + 3,
+      radius: Math.random() * 3 + 2,
+      alpha: 1,
+      color: Math.random() < 0.5 ? "#00ffff" : "#0088ff",
+      life: 0
+    };
+  }
+  
+  function createHitEffect(x, y, color="#fff") {
+    let particles = [];
+    for (let i = 0; i < 8; i++) {
+      let angle = (i / 8) * Math.PI * 2;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * 4,
+        vy: Math.sin(angle) * 4,
+        radius: 3,
+        alpha: 1,
+        color: color,
+        life: 0
+      });
+    }
+    return { particles, alive: true };
+  }
+  
+  function resetGame() {
+    player = createPlayer();
+    bullets = [];
+    enemies = [];
+    powerups = [];
+    boss = null;
+    bossBullets = [];
+    explosions = [];
+    stars = [];
+    nebulae = [];
+    bulletTrails = [];
+    thrusterParticles = [];
+    hitEffects = [];
+    screenFlash = 0;
+    
+    for (let i = 0; i < 150; i++) stars.push(createStar());
+    for (let i = 0; i < 6; i++) nebulae.push(createNebula());
+    
+    score = 0;
+    level = 1;
+    timer = LEVEL_TIME;
+    objectsShot = 0;
+    lives = MAX_LIVES;
+    enemySpawnRate = ENEMY_SPAWN_RATE_BASE;
+    enemySpeed = ENEMY_SPEED_BASE;
+    bossActive = false;
+    bossDefeated = false;
+    gameState = 'playing';
+    lastEnemySpawn = 0;
+    lastFire = 0;
+    playerPower = 1;
+    playerPowerTimer = 0;
+    waveIndex = 0;
+    waveTimer = 0;
+    screenshake = 0;
+    pulseTimer = 0;
+    updateUI();
+    gameOverEl.style.display = 'none';
+    levelCompleteEl.style.display = 'none';
+  }
+  
+  function updateUI() {
+    scoreEl.textContent = score;
+    timerEl.textContent = Math.ceil(timer);
+    levelEl.textContent = level;
+    let shields = "";
+    for (let i=0; i<player.shields; i++) shields += "&#128994;";
+    livesEl.innerHTML = "&#128153;".repeat(lives) + shields;
+  }
+  
+  function drawBackground() {
+    // Dynamic background for each level
+    let bg = BG_COLORS[(level-1) % BG_COLORS.length];
+    let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grad.addColorStop(0, bg[0]);
+    grad.addColorStop(1, bg[1]);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Screen flash effect
+    if (screenFlash > 0) {
+      ctx.save();
+      ctx.globalAlpha = screenFlash / 25;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+  }
+  
+  function drawPlayer() {
+    ctx.save();
+    
+    // Player thruster particles
+    player.thrusterTimer += 16;
+    if (player.thrusterTimer > 30) {
+      thrusterParticles.push(createThrusterParticle(player.x + player.width/2, player.y + player.height));
+      player.thrusterTimer = 0;
+    }
+    
+    // Stylized ship: blue body, white cockpit, cyan glow, wings
+    let cx = player.x + player.width/2, cy = player.y + player.height/2;
+    
+    // Enhanced glow with pulsing
+    ctx.save();
+    let glowAlpha = 0.6 + Math.sin(pulseTimer * 0.05) * 0.2;
+    ctx.globalAlpha = glowAlpha;
+    ctx.beginPath();
+    ctx.arc(cx, cy+10, player.width/1.4, 0, Math.PI*2);
+    let glowGrad = ctx.createRadialGradient(cx, cy+10, 0, cx, cy+10, player.width/1.4);
+    glowGrad.addColorStop(0, "#00f6ff");
+    glowGrad.addColorStop(0.7, "#0088ff");
+    glowGrad.addColorStop(1, "rgba(0,136,255,0)");
+    ctx.fillStyle = glowGrad;
+    ctx.shadowColor = "#00d6ff";
+    ctx.shadowBlur = 25;
+    ctx.fill();
+    ctx.restore();
+    
+    // Body with gradient
+    ctx.beginPath();
+    ctx.moveTo(cx, player.y);
+    ctx.lineTo(player.x + player.width, player.y + player.height-6);
+    ctx.lineTo(player.x, player.y + player.height-6);
+    ctx.closePath();
+    let bodyGrad = ctx.createLinearGradient(cx, player.y, cx, player.y + player.height);
+    bodyGrad.addColorStop(0, "#00eaff");
+    bodyGrad.addColorStop(1, "#0088cc");
+    ctx.fillStyle = bodyGrad;
+    ctx.shadowColor = "#00eaff";
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    // Cockpit with reflection
+    ctx.beginPath();
+    ctx.ellipse(cx, player.y + player.height/2, 12, 18, 0, 0, Math.PI*2);
+    let cockpitGrad = ctx.createRadialGradient(cx-4, player.y + player.height/2-6, 0, cx, player.y + player.height/2, 18);
+    cockpitGrad.addColorStop(0, "#fff");
+    cockpitGrad.addColorStop(0.6, "#aaf");
+    cockpitGrad.addColorStop(1, "#88c");
+    ctx.fillStyle = cockpitGrad;
+    ctx.globalAlpha = 0.8;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    
+    // Enhanced wings with energy trails
+    ctx.beginPath();
+    ctx.moveTo(player.x+8, player.y+player.height-10);
+    ctx.lineTo(player.x-12, player.y+player.height+12);
+    ctx.lineTo(player.x+player.width/2, player.y+player.height-2);
+    ctx.lineTo(player.x+player.width+12, player.y+player.height+12);
+    ctx.lineTo(player.x+player.width-8, player.y+player.height-10);
+    ctx.closePath();
+    ctx.fillStyle = "#0ff";
+    ctx.globalAlpha = 0.4;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    
+    // Shield layers with animated ripples
+    for (let i=0; i<player.shields; i++) {
+      ctx.save();
+      let shieldPulse = Math.sin(pulseTimer * 0.08 + i) * 0.3;
+      ctx.strokeStyle = `rgba(0,255,255,${0.3 + 0.2*i + shieldPulse})`;
+      ctx.lineWidth = 8 + 2*i;
+      ctx.beginPath();
+      ctx.arc(cx, cy, player.width / 1.1 + 8*i, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    
+    // Power-up glow
+    if (playerPower > 1) {
+      ctx.strokeStyle = `rgba(0,234,255,${0.3 * playerPower + Math.sin(pulseTimer * 0.1) * 0.2})`;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, player.width / 1.3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    
+    ctx.restore();
+  }
+  
+  function drawBullet(b) {
+    // Enhanced bullet with trail and glow
+    ctx.save();
+    
+    // Draw trail
+    if (b.trail.length > 1) {
+      ctx.globalAlpha = 0.6;
+      ctx.strokeStyle = '#00ccff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(b.trail[0].x, b.trail[0].y);
+      for (let i = 1; i < b.trail.length; i++) {
+        ctx.lineTo(b.trail[i].x, b.trail[i].y);
+      }
+      ctx.stroke();
+    }
+    
+    // Main bullet with glow
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = "#00ffff";
+    ctx.shadowBlur = 12;
+    let bulletGrad = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.height);
+    bulletGrad.addColorStop(0, "#ffffff");
+    bulletGrad.addColorStop(0.5, "#00ffff");
+    bulletGrad.addColorStop(1, "#0088ff");
+    ctx.fillStyle = bulletGrad;
+    ctx.fillRect(b.x, b.y, b.width, b.height);
+    ctx.shadowBlur = 0;
+    
+    ctx.restore();
+  }
+  
+  function drawEnemy(e) {
+    ctx.save();
+    let t = enemyTypes[e.typeIndex % enemyTypes.length];
+    e.pulse += 0.1;
+    let pulseFactor = 1 + Math.sin(e.pulse) * 0.1;
+    
+    if (e.isBoss) {
+      let grad = ctx.createRadialGradient(e.x+e.width/2, e.y+e.height/2, 10, e.x+e.width/2, e.y+e.height/2, e.width/1.2);
+      grad.addColorStop(0, "#fff");
+      grad.addColorStop(0.4, "#ff00e1");
+      grad.addColorStop(1, "#aa00ff00");
+      ctx.fillStyle = grad;
+      ctx.shadowColor = "#ff00e1";
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.ellipse(e.x+e.width/2, e.y+e.height/2, (e.width/2)*pulseFactor, (e.height/2)*pulseFactor, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // Boss health bar with glow
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(e.x, e.y - 15, e.width, 8);
+      ctx.fillStyle = '#f00';
+      ctx.fillRect(e.x+2, e.y - 13, e.width-4, 4);
+      ctx.fillStyle = '#0f0';
+      ctx.shadowColor = "#0f0";
+      ctx.shadowBlur = 8;
+      ctx.fillRect(e.x+2, e.y - 13, (e.width-4) * (e.hp / BOSS_HP), 4);
+      ctx.shadowBlur = 0;
+    } else {
+      // Enhanced enemy shapes with glow and pulsing
+      ctx.shadowColor = t.color;
+      ctx.shadowBlur = 15;
+      
+      if (t.shape === "triangle") {
+        ctx.fillStyle = t.color;
+        ctx.beginPath();
+        ctx.moveTo(e.x + e.width / 2, e.y);
+        ctx.lineTo(e.x + e.width * pulseFactor, e.y + e.height * pulseFactor);
+        ctx.lineTo(e.x + e.width * (2-pulseFactor), e.y + e.height * pulseFactor);
+        ctx.closePath();
+        ctx.fill();
+      } else if (t.shape === "circle") {
+        let circleGrad = ctx.createRadialGradient(e.x + e.width/2, e.y + e.height/2, 0, e.x + e.width/2, e.y + e.height/2, e.width/2);
+        circleGrad.addColorStop(0, "#fff");
+        circleGrad.addColorStop(0.7, t.color);
+        circleGrad.addColorStop(1, t.color);
+        ctx.fillStyle = circleGrad;
+        ctx.beginPath();
+        ctx.arc(e.x + e.width/2, e.y + e.height/2, (e.width/2)*pulseFactor, 0, Math.PI*2);
+        ctx.fill();
+      } else if (t.shape === "diamond") {
+        ctx.fillStyle = t.color;
+        ctx.beginPath();
+        ctx.moveTo(e.x + e.width/2, e.y);
+        ctx.lineTo(e.x + e.width * pulseFactor, e.y + e.height/2);
+        ctx.lineTo(e.x + e.width/2, e.y + e.height * pulseFactor);
+        ctx.lineTo(e.x + e.width * (2-pulseFactor), e.y + e.height/2);
+        ctx.closePath();
+        ctx.fill();
+      } else if (t.shape === "eye") {
+        ctx.fillStyle = t.color;
+        ctx.beginPath();
+        ctx.ellipse(e.x + e.width/2, e.y + e.height/2, (e.width/2)*pulseFactor, (e.height/3)*pulseFactor, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(e.x + e.width/2, e.y + e.height/2, (e.width/7)*pulseFactor, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = "#f00";
+        ctx.beginPath();
+        ctx.arc(e.x + e.width/2, e.y + e.height/2, (e.width/12)*pulseFactor, 0, Math.PI*2);
+        ctx.fill();
+      } else if (t.shape === "ufo") {
+        ctx.fillStyle = t.color;
+        ctx.beginPath();
+        ctx.ellipse(e.x + e.width/2, e.y + e.height/2, (e.width/2)*pulseFactor, (e.height/3)*pulseFactor, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.ellipse(e.x + e.width/2, e.y + e.height/2+6, (e.width/4)*pulseFactor, (e.height/8)*pulseFactor, 0, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+  }
+  
+  function drawPowerup(p) {
+    ctx.save();
+    p.glow += 0.15;
+    let glowFactor = 1 + Math.sin(p.glow) * 0.3;
+    
+    if (p.type === "shield") {
+      ctx.shadowColor = "#00ffcc";
+      ctx.shadowBlur = 20 * glowFactor;
+      ctx.fillStyle = "#00ffcc";
+      ctx.beginPath();
+      ctx.ellipse(p.x + p.width/2, p.y + p.height/2, (p.width/2)*glowFactor, (p.height/2)*glowFactor, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
